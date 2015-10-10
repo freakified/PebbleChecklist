@@ -3,6 +3,7 @@
  */
 
 #include "checkbox_window.h"
+#include "dialog_message_window.h"
 #include "../values.h"
 #include "../util.h"
 
@@ -97,10 +98,9 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   if(cell_index->row == CHECKBOX_WINDOW_NUM_ROWS) {
-    // Do something with choices made
-    for(int i = 0; i < CHECKBOX_WINDOW_NUM_ROWS; i++) {
-      APP_LOG(APP_LOG_LEVEL_INFO, "Option %d was %s", i, (s_selections[i] ? "selected" : "not selected"));
-    }
+    // Clear the completed items
+
+    dialog_message_window_push();
   } else {
     // Check/uncheck
     int row = cell_index->row;
