@@ -11,6 +11,7 @@
 static Window *s_main_window;
 static MenuLayer *s_menu_layer;
 static StatusBarLayer *s_status_bar;
+static TextLayer *s_empty_msg_layer;
 
 static GBitmap *s_tick_black_bitmap;
 static GBitmap *s_tick_white_bitmap;
@@ -45,10 +46,17 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
 static void draw_add_button(GContext *ctx, Layer *cell_layer);
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  return numberOfChecklistItems + 2;
+  if(numberOfChecklistItems == 0) {
+    return 1;
+  } else {
+    return numberOfChecklistItems + 2;
+  }
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
+  printf("number of items: %i", numberOfChecklistItems);
+  layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (numberOfChecklistItems != 0));
+
   if(cell_index->row == 0) {
     // Add action
     draw_add_button(ctx, cell_layer);
@@ -207,6 +215,16 @@ static void window_load(Window *window) {
   // Create dictation session
   s_dictation_session = dictation_session_create(sizeof(s_last_text),
                                                  dictation_session_callback, NULL);
+
+  s_empty_msg_layer = text_layer_create(PBL_IF_ROUND_ELSE(
+    GRect(0, bounds.size.h / 2 + 40, bounds.size.w, bounds.size.h),
+    GRect(0, bounds.size.h / 2 + 25, bounds.size.w, bounds.size.h)
+  ));
+ text_layer_set_text(s_empty_msg_layer, "No items");
+ text_layer_set_background_color(s_empty_msg_layer, GColorClear);
+ text_layer_set_text_alignment(s_empty_msg_layer, GTextAlignmentCenter);
+ text_layer_set_font(s_empty_msg_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+ layer_add_child(window_layer, text_layer_get_layer(s_empty_msg_layer));
 
 }
 
