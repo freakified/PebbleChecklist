@@ -4,6 +4,7 @@
 
 #include "checkbox_window.h"
 #include "dialog_message_window.h"
+// #include "../checklist_item.h"
 #include "../values.h"
 #include "../util.h"
 
@@ -16,9 +17,11 @@ static GBitmap *s_tick_white_bitmap;
 static GBitmap *add_bitmap_black;
 static GBitmap *add_bitmap_white;
 
-static DictationSession *s_dictation_session;
+static  DictationSession *s_dictation_session;
 // Declare a buffer for the DictationSession
 static char s_last_text[512];
+
+static char s_deleted_msg[30];
 
 // max items, 30 chars per item
 static char checkListItems[CHECKBOX_WINDOW_MAX_ITEMS][30];
@@ -31,9 +34,10 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
   // Print the results of a transcription attempt
   APP_LOG(APP_LOG_LEVEL_INFO, "Dictation status: %d", (int)status);
 
-  // add a new checkbox with the result
-  strncpy(checkListItems[numberOfChecklistItems], transcription, 30);
-  numberOfChecklistItems++;
+  if(status == DictationSessionStatusSuccess) {
+    strncpy(checkListItems[numberOfChecklistItems], transcription, 30);
+    numberOfChecklistItems++;
+  }
 
   // TODO: Add bounds checking
 }
@@ -53,7 +57,10 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
     menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
   } else {
     // it's a checklist item
-    menu_cell_basic_draw(ctx, cell_layer, checkListItems[cell_index->row - 1], NULL, NULL);
+    // int idx = cell_index->row - 1;
+    int idx = numberOfChecklistItems - (cell_index->row - 1) - 1;
+
+    menu_cell_basic_draw(ctx, cell_layer, checkListItems[idx], NULL, NULL);
 
     if(menu_cell_layer_is_highlighted(cell_layer)) {
       graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -79,14 +86,14 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
 
     graphics_draw_rect(ctx, r);
 
-    if(s_selections[cell_index->row]) {
+    if(s_selections[idx]) {
       graphics_context_set_compositing_mode(ctx, GCompOpSet);
       graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
 
       graphics_context_set_stroke_width(ctx, 2);
 
       // draw text strikethrough
-      GSize size = graphics_text_layout_get_content_size(checkListItems[cell_index->row - 1],
+      GSize size = graphics_text_layout_get_content_size(checkListItems[idx],
                                                          fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
                                                          bounds,
                                                          GTextOverflowModeTrailingEllipsis,
@@ -120,15 +127,43 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     dictation_session_start(s_dictation_session);
   } else if(cell_index->row == numberOfChecklistItems + 1) {
     // Clear the completed items
+    int numDeleted = 0;
+
+    // TODO: make this not awful
+    int i = 0;
+    while (i < numberOfChecklistItems) {
+      printf("NumberOfItems: %i s_selections[%i] = %i", numberOfChecklistItems, i, s_selections[i]);
+      if(s_selections[i]) { // is the item checked?
+
+        // delete the item
+        memmove(&s_selections[i], &s_selections[i+1], sizeof(s_selections[0])*(numberOfChecklistItems - i));
+        memmove(&checkListItems[i], &checkListItems[i+1], sizeof(checkListItems[0])*(numberOfChecklistItems - i));
+
+        numDeleted++;
+        numberOfChecklistItems--;
+      } else {
+        i++;
+      }
+    }
 
     // Display indication
-    char message[20];
-    snprintf(message, sizeof(message), "%i Items Deleted", );
-    dialog_message_window_push(message);
+    if(numDeleted == 0) {
+      snprintf(s_deleted_msg, sizeof(s_deleted_msg), "Nothing to delete!");
+    } else if(numDeleted == 1) {
+      snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Item Deleted", numDeleted);
+    } else {
+      snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Items Deleted", numDeleted);
+    }
+
+    dialog_message_window_push(s_deleted_msg);
+
+    menu_layer_reload_data(menu_layer);
   } else {
     // Check/uncheck
-    int row = cell_index->row;
-    s_selections[row] = !s_selections[row];
+    int idx = numberOfChecklistItems - (cell_index->row - 1) - 1;
+
+    printf("Row %i was hit!", idx);
+    s_selections[idx] = !s_selections[idx];
     menu_layer_reload_data(menu_layer);
   }
 }
