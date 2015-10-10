@@ -15,26 +15,45 @@ static GBitmap *s_tick_black_bitmap;
 static GBitmap *s_tick_white_bitmap;
 static GBitmap *add_bitmap_black;
 static GBitmap *add_bitmap_white;
-static bool s_selections[CHECKBOX_WINDOW_NUM_ROWS];
+
+static DictationSession *s_dictation_session;
+// Declare a buffer for the DictationSession
+static char s_last_text[512];
+
+// max items, 30 chars per item
+static char checkListItems[CHECKBOX_WINDOW_MAX_ITEMS][30];
+static bool s_selections[CHECKBOX_WINDOW_MAX_ITEMS];
+static int numberOfChecklistItems = 0;
+
+static void dictation_session_callback(DictationSession *session, DictationSessionStatus status,
+                                       char *transcription, void *context) {
+
+  // Print the results of a transcription attempt
+  APP_LOG(APP_LOG_LEVEL_INFO, "Dictation status: %d", (int)status);
+
+  // add a new checkbox with the result
+  strncpy(checkListItems[numberOfChecklistItems], transcription, 30);
+  numberOfChecklistItems++;
+
+  // TODO: Add bounds checking
+}
 
 static void draw_add_button(GContext *ctx, Layer *cell_layer);
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  return CHECKBOX_WINDOW_NUM_ROWS + 1;
+  return numberOfChecklistItems + 2;
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
   if(cell_index->row == 0) {
     // Add action
     draw_add_button(ctx, cell_layer);
-  } else if(cell_index->row == CHECKBOX_WINDOW_NUM_ROWS) {
+  } else if(cell_index->row == numberOfChecklistItems + 1) {
     // Clear action
     menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
   } else {
-    // Choice item
-    static char s_buff[16];
-    snprintf(s_buff, sizeof(s_buff), "Choice %d", (int)cell_index->row);
-    menu_cell_basic_draw(ctx, cell_layer, s_buff, NULL, NULL);
+    // it's a checklist item
+    menu_cell_basic_draw(ctx, cell_layer, checkListItems[cell_index->row - 1], NULL, NULL);
 
     if(menu_cell_layer_is_highlighted(cell_layer)) {
       graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -67,7 +86,7 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
       graphics_context_set_stroke_width(ctx, 2);
 
       // draw text strikethrough
-      GSize size = graphics_text_layout_get_content_size(s_buff,
+      GSize size = graphics_text_layout_get_content_size(checkListItems[cell_index->row - 1],
                                                          fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
                                                          bounds,
                                                          GTextOverflowModeTrailingEllipsis,
@@ -97,9 +116,10 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
-  if(cell_index->row == CHECKBOX_WINDOW_NUM_ROWS) {
+  if(cell_index->row == 0) {
+    dictation_session_start(s_dictation_session);
+  } else if(cell_index->row == numberOfChecklistItems + 1) {
     // Clear the completed items
-
     dialog_message_window_push();
   } else {
     // Check/uncheck
@@ -144,6 +164,11 @@ static void window_load(Window *window) {
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
 
   status_bar_layer_set_colors(s_status_bar, GColorYellow, GColorBlack);
+
+  // Create dictation session
+  s_dictation_session = dictation_session_create(sizeof(s_last_text),
+                                                 dictation_session_callback, NULL);
+
 }
 
 static void window_unload(Window *window) {

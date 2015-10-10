@@ -13,6 +13,8 @@ static Layer *s_background_layer;
 
 static GBitmap *s_icon_bitmap;
 
+static AppTimer* self_destruct_timer;
+
 static void background_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, GColorLimerick);
   graphics_fill_rect(ctx, layer_get_bounds(layer), 0, 0);
@@ -40,6 +42,7 @@ static void window_load(Window *window) {
   text_layer_set_text_alignment(s_label_layer, GTextAlignmentCenter);
   text_layer_set_font(s_label_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(s_label_layer));
+
 }
 
 static void window_unload(Window *window) {
@@ -50,8 +53,14 @@ static void window_unload(Window *window) {
   bitmap_layer_destroy(s_icon_layer);
   gbitmap_destroy(s_icon_bitmap);
 
+  app_timer_cancel(self_destruct_timer);
+
   window_destroy(window);
   s_main_window = NULL;
+}
+
+void self_destruct() {
+    window_stack_pop(true);
 }
 
 void dialog_message_window_push() {
@@ -64,4 +73,6 @@ void dialog_message_window_push() {
     });
   }
   window_stack_push(s_main_window, true);
+
+  self_destruct_timer = app_timer_register(1000, self_destruct, NULL);
 }
