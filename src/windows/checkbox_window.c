@@ -120,7 +120,11 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     dictation_session_start(s_dictation_session);
   } else if(cell_index->row == numberOfChecklistItems + 1) {
     // Clear the completed items
-    dialog_message_window_push();
+
+    // Display indication
+    char message[20];
+    snprintf(message, sizeof(message), "%i Items Deleted", );
+    dialog_message_window_push(message);
   } else {
     // Check/uncheck
     int row = cell_index->row;
