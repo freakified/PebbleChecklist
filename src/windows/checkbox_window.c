@@ -28,6 +28,8 @@ static char s_deleted_msg[30];
 static char checkListItems[CHECKBOX_WINDOW_MAX_ITEMS][30];
 static bool s_selections[CHECKBOX_WINDOW_MAX_ITEMS];
 static int numberOfChecklistItems = 0;
+static int numberOfCheckedItems = 0;
+
 
 static void dictation_session_callback(DictationSession *session, DictationSessionStatus status,
                                        char *transcription, void *context) {
@@ -38,9 +40,9 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
   if(status == DictationSessionStatusSuccess) {
     strncpy(checkListItems[numberOfChecklistItems], transcription, 30);
     numberOfChecklistItems++;
+  } else if(status == DictationSessionStatusFailureConnectivityError){
+     dialog_message_window_push("Speech input failed");
   }
-
-  // TODO: Add bounds checking
 }
 
 static void draw_add_button(GContext *ctx, Layer *cell_layer);
@@ -49,12 +51,16 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
   if(numberOfChecklistItems == 0) {
     return 1;
   } else {
-    return numberOfChecklistItems + 2;
+    if(numberOfCheckedItems > 0) {
+      return numberOfChecklistItems + 2;
+    } else {
+      return numberOfChecklistItems + 1;
+    }
   }
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
-  printf("number of items: %i", numberOfChecklistItems);
+  // printf("number of items: %i", numberOfChecklistItems);
   layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (numberOfChecklistItems != 0));
 
   if(cell_index->row == 0) {
@@ -132,6 +138,7 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   if(cell_index->row == 0) {
+    // dialog_message_window_push("3 items deleted");
     dictation_session_start(s_dictation_session);
   } else if(cell_index->row == numberOfChecklistItems + 1) {
     // Clear the completed items
@@ -140,7 +147,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     // TODO: make this not awful
     int i = 0;
     while (i < numberOfChecklistItems) {
-      printf("NumberOfItems: %i s_selections[%i] = %i", numberOfChecklistItems, i, s_selections[i]);
+      // printf("NumberOfItems: %i s_selections[%i] = %i", numberOfChecklistItems, i, s_selections[i]);
       if(s_selections[i]) { // is the item checked?
 
         // delete the item
@@ -156,22 +163,29 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
 
     // Display indication
     if(numDeleted == 0) {
-      snprintf(s_deleted_msg, sizeof(s_deleted_msg), "Nothing to delete!");
-    } else if(numDeleted == 1) {
-      snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Item Deleted", numDeleted);
+
     } else {
-      snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Items Deleted", numDeleted);
+      if(numDeleted == 1) {
+        snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Item Deleted", numDeleted);
+      } else {
+        snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Items Deleted", numDeleted);
+      }
+
+      dialog_message_window_push(s_deleted_msg);
+      menu_layer_reload_data(menu_layer);
     }
 
-    dialog_message_window_push(s_deleted_msg);
-
-    menu_layer_reload_data(menu_layer);
   } else {
     // Check/uncheck
     int idx = numberOfChecklistItems - (cell_index->row - 1) - 1;
 
-    printf("Row %i was hit!", idx);
     s_selections[idx] = !s_selections[idx];
+
+    if(s_selections[idx]) {
+      numberOfCheckedItems++;
+    } else {
+      numberOfCheckedItems--;
+    }
     menu_layer_reload_data(menu_layer);
   }
 }
@@ -225,6 +239,7 @@ static void window_load(Window *window) {
  text_layer_set_text_alignment(s_empty_msg_layer, GTextAlignmentCenter);
  text_layer_set_font(s_empty_msg_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
  layer_add_child(window_layer, text_layer_get_layer(s_empty_msg_layer));
+
 
 }
 

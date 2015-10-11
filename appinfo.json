@@ -30,9 +30,9 @@
         "file": "images/add_black.png"
       },
       {
-        "type": "png",
-        "name": "DELETED",
-        "file": "images/deleted.png"
+        "type": "raw",
+        "name": "DELETED_SEQUENCE",
+        "file": "images/deleted_sequence.pdc"
       },
       {
         "type": "png",
