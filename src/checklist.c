@@ -79,6 +79,8 @@ int checklist_delete_completed_items() {
     }
   }
 
+  checklist_num_checked -= num_deleted;
+
   return num_deleted;
 }
 

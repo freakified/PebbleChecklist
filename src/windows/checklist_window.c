@@ -54,9 +54,7 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
 
   if(status == DictationSessionStatusSuccess) {
     checklist_add_item(transcription);
-  } else if(status == DictationSessionStatusFailureConnectivityError){
-     // TODO: Actually make this work properly
-     dialog_message_window_push("Speech input failed");
+    menu_layer_reload_data(s_menu_layer);
   }
 }
 
@@ -73,6 +71,64 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
   }
 }
 
+static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell_index) {
+  // draw a checklist item
+  int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
+
+  ChecklistItem* item = checklist_get_item_by_id(id);
+
+  menu_cell_basic_draw(ctx, cell_layer, item->name, NULL, NULL);
+
+  if(menu_cell_layer_is_highlighted(cell_layer)) {
+    graphics_context_set_stroke_color(ctx, GColorWhite);
+  }
+
+  GRect bounds = layer_get_bounds(cell_layer);
+  GRect bitmap_bounds = gbitmap_get_bounds(s_tick_black_bitmap);
+
+  GBitmap *imageToUse = s_tick_black_bitmap;
+
+  if(menu_cell_layer_is_highlighted(cell_layer)) {
+    graphics_context_set_stroke_color(ctx, GColorWhite);
+    imageToUse = s_tick_white_bitmap;
+  }
+
+  // Draw checkbox
+  GRect r = GRect(
+    bounds.size.w - (2 * CHECKLIST_WINDOW_BOX_SIZE),
+    (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
+    CHECKLIST_WINDOW_BOX_SIZE,
+    CHECKLIST_WINDOW_BOX_SIZE
+  );
+
+  graphics_draw_rect(ctx, r);
+
+  if(item->isChecked) {
+    // draw the checkmark
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
+
+    // draw text strikethrough
+    graphics_context_set_stroke_width(ctx, 2);
+    GSize size = graphics_text_layout_get_content_size(item->name,
+                                                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                                                       bounds,
+                                                       GTextOverflowModeTrailingEllipsis,
+                                                       PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
+
+    // draw centered for round, left-aligned for rect
+    #ifdef PBL_ROUND
+      graphics_draw_line(ctx,
+                         GPoint((bounds.size.w / 2) - (size.w / 2), bounds.size.h / 2 ),
+                         GPoint((bounds.size.w / 2) + (size.w / 2), bounds.size.h / 2 ));
+    #else
+      graphics_draw_line(ctx,
+                         GPoint(5, bounds.size.h / 2 ),
+                         GPoint(5 + size.w, bounds.size.h / 2 ));
+    #endif
+  }
+}
+
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
   layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (checklist_get_num_items() != 0));
 
@@ -83,61 +139,8 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
     // draw the clear action
     menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
   } else {
-    // draw a checklist item
-    int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
-
-    ChecklistItem* item = checklist_get_item_by_id(id);
-
-    menu_cell_basic_draw(ctx, cell_layer, item->name, NULL, NULL);
-
-    if(menu_cell_layer_is_highlighted(cell_layer)) {
-      graphics_context_set_stroke_color(ctx, GColorWhite);
-    }
-
-    GRect bounds = layer_get_bounds(cell_layer);
-    GRect bitmap_bounds = gbitmap_get_bounds(s_tick_black_bitmap);
-
-    GBitmap *imageToUse = s_tick_black_bitmap;
-
-    if(menu_cell_layer_is_highlighted(cell_layer)) {
-      graphics_context_set_stroke_color(ctx, GColorWhite);
-      imageToUse = s_tick_white_bitmap;
-    }
-
-    // Draw checkbox
-    GRect r = GRect(
-      bounds.size.w - (2 * CHECKLIST_WINDOW_BOX_SIZE),
-      (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
-      CHECKLIST_WINDOW_BOX_SIZE,
-      CHECKLIST_WINDOW_BOX_SIZE
-    );
-
-    graphics_draw_rect(ctx, r);
-
-    if(item->isChecked) {
-      // draw the checkmark
-      graphics_context_set_compositing_mode(ctx, GCompOpSet);
-      graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
-
-      // draw text strikethrough
-      graphics_context_set_stroke_width(ctx, 2);
-      GSize size = graphics_text_layout_get_content_size(item->name,
-                                                         fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                                                         bounds,
-                                                         GTextOverflowModeTrailingEllipsis,
-                                                         PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
-
-      // draw centered for round, left-aligned for rect
-      #ifdef PBL_ROUND
-        graphics_draw_line(ctx,
-                           GPoint((bounds.size.w / 2) - (size.w / 2), bounds.size.h / 2 ),
-                           GPoint((bounds.size.w / 2) + (size.w / 2), bounds.size.h / 2 ));
-      #else
-        graphics_draw_line(ctx,
-                           GPoint(5, bounds.size.h / 2 ),
-                           GPoint(5 + size.w, bounds.size.h / 2 ));
-      #endif
-    }
+    // draw the checkbox
+    draw_checkbox_cell(ctx, cell_layer, cell_index);
   }
 }
 
@@ -225,12 +228,12 @@ static void window_load(Window *window) {
     GRect(0, bounds.size.h / 2 + 40, bounds.size.w, bounds.size.h),
     GRect(0, bounds.size.h / 2 + 25, bounds.size.w, bounds.size.h)
   ));
- text_layer_set_text(s_empty_msg_layer, "No items");
- text_layer_set_background_color(s_empty_msg_layer, GColorClear);
- text_layer_set_text_alignment(s_empty_msg_layer, GTextAlignmentCenter);
- text_layer_set_font(s_empty_msg_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
- layer_add_child(window_layer, text_layer_get_layer(s_empty_msg_layer));
 
+  text_layer_set_text(s_empty_msg_layer, "No items");
+  text_layer_set_background_color(s_empty_msg_layer, GColorClear);
+  text_layer_set_text_alignment(s_empty_msg_layer, GTextAlignmentCenter);
+  text_layer_set_font(s_empty_msg_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  layer_add_child(window_layer, text_layer_get_layer(s_empty_msg_layer));
 
 }
 
