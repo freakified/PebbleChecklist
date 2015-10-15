@@ -47,6 +47,20 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
 
 static void draw_add_button(GContext *ctx, Layer *cell_layer);
 
+static void save_to_storage() {
+  persist_write_data(PERSIST_KEY_CHECKLIST_ITEMS, &checkListItems, sizeof(checkListItems));
+  persist_write_data(PERSIST_KEY_CHECKLIST_SELECTIONS, &s_selections, sizeof(s_selections));
+  persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, numberOfChecklistItems);
+  persist_write_int(PERSIST_KEY_NUM_CHECKED, numberOfCheckedItems);
+}
+
+static void load_from_storage() {
+  persist_read_data(PERSIST_KEY_CHECKLIST_ITEMS, &checkListItems, sizeof(checkListItems));
+  persist_read_data(PERSIST_KEY_CHECKLIST_SELECTIONS, &s_selections, sizeof(s_selections));
+  numberOfChecklistItems = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
+  numberOfCheckedItems = persist_read_int(PERSIST_KEY_NUM_CHECKED);
+}
+
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
   if(numberOfChecklistItems == 0) {
     return 1;
@@ -172,6 +186,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
       }
 
       dialog_message_window_push(s_deleted_msg);
+      numberOfCheckedItems -= numDeleted;
       menu_layer_reload_data(menu_layer);
     }
 
@@ -191,6 +206,8 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
 }
 
 static void window_load(Window *window) {
+  load_from_storage();
+
   Layer *window_layer = window_get_root_layer(window);
   GRect windowBounds = layer_get_bounds(window_layer);;
 
@@ -244,6 +261,8 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+  save_to_storage();
+
   menu_layer_destroy(s_menu_layer);
 
   gbitmap_destroy(s_tick_black_bitmap);
