@@ -1,11 +1,10 @@
 /**
- * Example implementation of the checkbox list UI pattern.
+ * The main checklist window, showing the the list of items with their associated checkboxes.
  */
 
-#include "checkbox_window.h"
+#include "checklist_window.h"
 #include "dialog_message_window.h"
-// #include "../checklist_item.h"
-#include "../values.h"
+#include "../checklist.h"
 #include "../util.h"
 
 static Window *s_main_window;
@@ -15,21 +14,37 @@ static TextLayer *s_empty_msg_layer;
 
 static GBitmap *s_tick_black_bitmap;
 static GBitmap *s_tick_white_bitmap;
-static GBitmap *add_bitmap_black;
-static GBitmap *add_bitmap_white;
+static GBitmap *s_add_bitmap_black;
+static GBitmap *s_add_bitmap_white;
 
-static  DictationSession *s_dictation_session;
+static DictationSession *s_dictation_session;
+
 // Declare a buffer for the DictationSession
 static char s_last_text[512];
 
+// Buffer to hold alert message (TODO is this needed?)
 static char s_deleted_msg[30];
 
-// max items, 30 chars per item
-static char checkListItems[CHECKBOX_WINDOW_MAX_ITEMS][30];
-static bool s_selections[CHECKBOX_WINDOW_MAX_ITEMS];
-static int numberOfChecklistItems = 0;
-static int numberOfCheckedItems = 0;
+static void draw_add_button(GContext *ctx, Layer *cell_layer) {
+  GRect bounds = layer_get_bounds(cell_layer);
+  GRect bitmap_bounds = gbitmap_get_bounds(s_add_bitmap_black);
 
+  GPoint pos;
+  pos.x = (bounds.size.w / 2) - (bitmap_bounds.size.w / 2);
+  pos.y = (bounds.size.h / 2) - (bitmap_bounds.size.h / 2);
+
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+
+  GBitmap *imageToUse = s_tick_black_bitmap;
+
+  if(menu_cell_layer_is_highlighted(cell_layer)) {
+    imageToUse = s_add_bitmap_white;
+  } else {
+    imageToUse = s_add_bitmap_black;
+  }
+
+  graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(pos.x, pos.y, bitmap_bounds.size.w, bitmap_bounds.size.h));
+}
 
 static void dictation_session_callback(DictationSession *session, DictationSessionStatus status,
                                        char *transcription, void *context) {
@@ -38,57 +53,42 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
   APP_LOG(APP_LOG_LEVEL_INFO, "Dictation status: %d", (int)status);
 
   if(status == DictationSessionStatusSuccess) {
-    strncpy(checkListItems[numberOfChecklistItems], transcription, 30);
-    numberOfChecklistItems++;
+    checklist_add_item(transcription);
   } else if(status == DictationSessionStatusFailureConnectivityError){
+     // TODO: Actually make this work properly
      dialog_message_window_push("Speech input failed");
   }
 }
 
-static void draw_add_button(GContext *ctx, Layer *cell_layer);
-
-static void save_to_storage() {
-  persist_write_data(PERSIST_KEY_CHECKLIST_ITEMS, &checkListItems, sizeof(checkListItems));
-  persist_write_data(PERSIST_KEY_CHECKLIST_SELECTIONS, &s_selections, sizeof(s_selections));
-  persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, numberOfChecklistItems);
-  persist_write_int(PERSIST_KEY_NUM_CHECKED, numberOfCheckedItems);
-}
-
-static void load_from_storage() {
-  persist_read_data(PERSIST_KEY_CHECKLIST_ITEMS, &checkListItems, sizeof(checkListItems));
-  persist_read_data(PERSIST_KEY_CHECKLIST_SELECTIONS, &s_selections, sizeof(s_selections));
-  numberOfChecklistItems = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
-  numberOfCheckedItems = persist_read_int(PERSIST_KEY_NUM_CHECKED);
-}
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  if(numberOfChecklistItems == 0) {
+  if(checklist_get_num_items() == 0) {
     return 1;
   } else {
-    if(numberOfCheckedItems > 0) {
-      return numberOfChecklistItems + 2;
+    if(checklist_get_num_items_checked() > 0) {
+      return checklist_get_num_items() + 2;
     } else {
-      return numberOfChecklistItems + 1;
+      return checklist_get_num_items() + 1;
     }
   }
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
-  // printf("number of items: %i", numberOfChecklistItems);
-  layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (numberOfChecklistItems != 0));
+  layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (checklist_get_num_items() != 0));
 
   if(cell_index->row == 0) {
-    // Add action
+    // draw the add action
     draw_add_button(ctx, cell_layer);
-  } else if(cell_index->row == numberOfChecklistItems + 1) {
-    // Clear action
+  } else if(cell_index->row == checklist_get_num_items() + 1) {
+    // draw the clear action
     menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
   } else {
-    // it's a checklist item
-    // int idx = cell_index->row - 1;
-    int idx = numberOfChecklistItems - (cell_index->row - 1) - 1;
+    // draw a checklist item
+    int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
 
-    menu_cell_basic_draw(ctx, cell_layer, checkListItems[idx], NULL, NULL);
+    ChecklistItem* item = checklist_get_item_by_id(id);
+
+    menu_cell_basic_draw(ctx, cell_layer, item->name, NULL, NULL);
 
     if(menu_cell_layer_is_highlighted(cell_layer)) {
       graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -106,22 +106,22 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
 
     // Draw checkbox
     GRect r = GRect(
-      bounds.size.w - (2 * CHECKBOX_WINDOW_BOX_SIZE),
-      (bounds.size.h / 2) - (CHECKBOX_WINDOW_BOX_SIZE / 2),
-      CHECKBOX_WINDOW_BOX_SIZE,
-      CHECKBOX_WINDOW_BOX_SIZE
+      bounds.size.w - (2 * CHECKLIST_WINDOW_BOX_SIZE),
+      (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
+      CHECKLIST_WINDOW_BOX_SIZE,
+      CHECKLIST_WINDOW_BOX_SIZE
     );
 
     graphics_draw_rect(ctx, r);
 
-    if(s_selections[idx]) {
+    if(item->isChecked) {
+      // draw the checkmark
       graphics_context_set_compositing_mode(ctx, GCompOpSet);
       graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
 
-      graphics_context_set_stroke_width(ctx, 2);
-
       // draw text strikethrough
-      GSize size = graphics_text_layout_get_content_size(checkListItems[idx],
+      graphics_context_set_stroke_width(ctx, 2);
+      GSize size = graphics_text_layout_get_content_size(item->name,
                                                          fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
                                                          bounds,
                                                          GTextOverflowModeTrailingEllipsis,
@@ -142,71 +142,45 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
 }
 
 static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
-  #ifdef PBL_ROUND
-    return menu_layer_menu_index_selected(menu_layer, cell_index) ?
-      FOCUSED_TALL_CELL_HEIGHT : UNFOCUSED_TALL_CELL_HEIGHT;
-  #else
-    return CHECKBOX_WINDOW_CELL_HEIGHT;
-  #endif
+  return CHECKLIST_CELL_HEIGHT;
+  // #ifdef PBL_ROUND
+  //   return menu_layer_menu_index_selected(menu_layer, cell_index) ?
+  //     FOCUSED_TALL_CELL_HEIGHT : UNFOCUSED_TALL_CELL_HEIGHT;
+  // #else
+  //   return CHECKBOX_WINDOW_CELL_HEIGHT;
+  // #endif
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   if(cell_index->row == 0) {
-    // dialog_message_window_push("3 items deleted");
+    // the first row is always the "add" button
     dictation_session_start(s_dictation_session);
-  } else if(cell_index->row == numberOfChecklistItems + 1) {
-    // Clear the completed items
-    int numDeleted = 0;
+  } else if(cell_index->row == checklist_get_num_items() + 1) {
+    // the last row is always the "clear completed" button
+    int num_deleted = checklist_delete_completed_items();
 
-    // TODO: make this not awful
-    int i = 0;
-    while (i < numberOfChecklistItems) {
-      // printf("NumberOfItems: %i s_selections[%i] = %i", numberOfChecklistItems, i, s_selections[i]);
-      if(s_selections[i]) { // is the item checked?
+    // generate and display "items deleted" message
+    snprintf(s_deleted_msg,
+             sizeof(s_deleted_msg),
+             ((num_deleted == 1) ? "%i Item Deleted" : "%i Items Deleted"),
+             num_deleted);
 
-        // delete the item
-        memmove(&s_selections[i], &s_selections[i+1], sizeof(s_selections[0])*(numberOfChecklistItems - i));
-        memmove(&checkListItems[i], &checkListItems[i+1], sizeof(checkListItems[0])*(numberOfChecklistItems - i));
-
-        numDeleted++;
-        numberOfChecklistItems--;
-      } else {
-        i++;
-      }
-    }
-
-    // Display indication
-    if(numDeleted == 0) {
-
-    } else {
-      if(numDeleted == 1) {
-        snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Item Deleted", numDeleted);
-      } else {
-        snprintf(s_deleted_msg, sizeof(s_deleted_msg), "%i Items Deleted", numDeleted);
-      }
-
-      dialog_message_window_push(s_deleted_msg);
-      numberOfCheckedItems -= numDeleted;
-      menu_layer_reload_data(menu_layer);
-    }
+    dialog_message_window_push(s_deleted_msg);
+    menu_layer_reload_data(menu_layer);
 
   } else {
-    // Check/uncheck
-    int idx = numberOfChecklistItems - (cell_index->row - 1) - 1;
+    // if the item is a checklist item, toggle its checked state
+    // get the id number of the checklist item to delete
+    int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
 
-    s_selections[idx] = !s_selections[idx];
+    checklist_item_toggle_checked(id);
 
-    if(s_selections[idx]) {
-      numberOfCheckedItems++;
-    } else {
-      numberOfCheckedItems--;
-    }
     menu_layer_reload_data(menu_layer);
   }
 }
 
 static void window_load(Window *window) {
-  load_from_storage();
+  checklist_init();
 
   Layer *window_layer = window_get_root_layer(window);
   GRect windowBounds = layer_get_bounds(window_layer);;
@@ -219,8 +193,8 @@ static void window_load(Window *window) {
 
   s_tick_black_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TICK_BLACK);
   s_tick_white_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TICK_WHITE);
-  add_bitmap_black = gbitmap_create_with_resource(RESOURCE_ID_ADD_BLACK);
-  add_bitmap_white = gbitmap_create_with_resource(RESOURCE_ID_ADD_WHITE);
+  s_add_bitmap_black = gbitmap_create_with_resource(RESOURCE_ID_ADD_BLACK);
+  s_add_bitmap_white = gbitmap_create_with_resource(RESOURCE_ID_ADD_WHITE);
 
   s_menu_layer = menu_layer_create(bounds);
   menu_layer_set_click_config_onto_window(s_menu_layer, window);
@@ -261,20 +235,20 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
-  save_to_storage();
+  checklist_deinit();
 
   menu_layer_destroy(s_menu_layer);
 
   gbitmap_destroy(s_tick_black_bitmap);
   gbitmap_destroy(s_tick_white_bitmap);
-  gbitmap_destroy(add_bitmap_black);
-  gbitmap_destroy(add_bitmap_white);
+  gbitmap_destroy(s_add_bitmap_black);
+  gbitmap_destroy(s_add_bitmap_white);
 
   window_destroy(window);
   s_main_window = NULL;
 }
 
-void checkbox_window_push() {
+void checklist_window_push() {
   if(!s_main_window) {
     s_main_window = window_create();
     window_set_window_handlers(s_main_window, (WindowHandlers) {
@@ -283,26 +257,4 @@ void checkbox_window_push() {
     });
   }
   window_stack_push(s_main_window, true);
-}
-
-static void draw_add_button(GContext *ctx, Layer *cell_layer) {
-  GRect bounds = layer_get_bounds(cell_layer);
-  // printf("Bounds: X: %i, Y: %i, W: %i, H: %i", bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h);
-  GRect bitmap_bounds = gbitmap_get_bounds(add_bitmap_black);
-
-  GPoint pos;
-  pos.x = (bounds.size.w / 2) - (bitmap_bounds.size.w / 2);
-  pos.y = (bounds.size.h / 2) - (bitmap_bounds.size.h / 2);
-
-  graphics_context_set_compositing_mode(ctx, GCompOpSet);
-
-  GBitmap *imageToUse = s_tick_black_bitmap;
-
-  if(menu_cell_layer_is_highlighted(cell_layer)) {
-    imageToUse = add_bitmap_white;
-  } else {
-    imageToUse = add_bitmap_black;
-  }
-
-  graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(pos.x, pos.y, bitmap_bounds.size.w, bitmap_bounds.size.h));
 }
