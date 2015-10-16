@@ -249,10 +249,13 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   if(cell_index->row == 0) {
     // the first row is always the "add" button
+
+    s_dictation_session = NULL;
+
     if(s_dictation_session != NULL) {
       dictation_session_start(s_dictation_session);
     } else {
-      dialog_warning_window_push("Could not access microphone. Ensure that your Pebble app is up to date.");
+      dialog_message_window_push("Could not access microphone. Ensure that your Pebble app is up to date.");
     }
   } else if(cell_index->row == checklist_get_num_items() + 1) {
     // the last row is always the "clear completed" button
@@ -264,7 +267,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
              ((num_deleted == 1) ? "%i Item Deleted" : "%i Items Deleted"),
              num_deleted);
 
-    dialog_shred_window_push(s_deleted_msg);
+    dialog_message_window_push(s_deleted_msg);
     menu_layer_reload_data(menu_layer);
 
   } else {

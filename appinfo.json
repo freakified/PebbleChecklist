@@ -38,6 +38,11 @@
         "type": "png",
         "name": "ADD_WHITE",
         "file": "images/add_white.png"
+      },
+      {
+        "type": "png",
+        "name": "WARNING",
+        "file": "images/warning.png"
       }
     ]
   }
