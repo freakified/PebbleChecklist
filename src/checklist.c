@@ -23,7 +23,7 @@ void checklist_init() {
   }
 }
 
-void checklist_deinit() {
+void save_data_to_storage() {
   // save checklist information
   persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, checklist_length);
   persist_write_int(PERSIST_KEY_NUM_CHECKED, checklist_num_checked);
@@ -32,6 +32,10 @@ void checklist_deinit() {
   for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
     persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i, &checklist_items[i], sizeof(ChecklistItem));
   }
+}
+
+void checklist_deinit() {
+  save_data_to_storage();
 }
 
 int checklist_get_num_items() {
@@ -45,6 +49,10 @@ int checklist_get_num_items_checked() {
 void checklist_add_item(const char* name) {
   if(checklist_length < MAX_CHECKLIST_ITEMS) {
     strncpy(checklist_items[checklist_length].name, name, MAX_NAME_LENGTH - 1);
+
+    // save the new item to persist
+    persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + checklist_length, &checklist_items[checklist_length], sizeof(ChecklistItem));
+
     checklist_length++;
   } else {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Failed to add checklist item; list exceeded maximum size.");
@@ -52,10 +60,10 @@ void checklist_add_item(const char* name) {
 }
 
 void checklist_item_toggle_checked(int id) {
-
-  printf("String is '%s'", checklist_items[id].name);
-
   checklist_items[id].isChecked = !(checklist_items[id].isChecked);
+
+  // save the edited item to persist
+  persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + id, &checklist_items[id], sizeof(ChecklistItem));
 
   if(checklist_items[id].isChecked) {
     checklist_num_checked++;
@@ -83,6 +91,10 @@ int checklist_delete_completed_items() {
   }
 
   checklist_num_checked -= num_deleted;
+
+  // normally, i would save this change to persist immediately, but rewriting the entire
+  // persistent store takes too much time
+  // save_data_to_storage();
 
   return num_deleted;
 }
