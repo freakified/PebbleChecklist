@@ -2,7 +2,6 @@
 
 // persistent storage keys
 #define PERSIST_KEY_CHECKLIST_LENGTH       100
-#define PERSIST_KEY_NUM_CHECKED            101
 
 // the checklist will occupy storage keys from 200 to 200 + MAX_CHECKLIST_ITEMS
 #define PERSIST_KEY_CHECKLIST_ITEM_FIRST  200
@@ -15,18 +14,21 @@ static int checklist_num_checked;
 void checklist_init() {
   // load checklist information from storage
   checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
-  checklist_num_checked = persist_read_int(PERSIST_KEY_NUM_CHECKED);
+  checklist_num_checked = 0;
 
   // load the rest of the checklist
   for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
     persist_read_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i, &checklist_items[i], sizeof(ChecklistItem));
+
+    if(checklist_items[i].isChecked) {
+      checklist_num_checked++;
+    }
   }
 }
 
 void save_data_to_storage() {
   // save checklist information
   persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, checklist_length);
-  persist_write_int(PERSIST_KEY_NUM_CHECKED, checklist_num_checked);
 
   // save the rest of the checklist
   for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
@@ -62,14 +64,17 @@ void checklist_add_item(const char* name) {
 void checklist_item_toggle_checked(int id) {
   checklist_items[id].isChecked = !(checklist_items[id].isChecked);
 
-  // save the edited item to persist
-  persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + id, &checklist_items[id], sizeof(ChecklistItem));
-
   if(checklist_items[id].isChecked) {
     checklist_num_checked++;
   } else {
     checklist_num_checked--;
   }
+
+  // save the edited item to persist
+  persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + id, &checklist_items[id], sizeof(ChecklistItem));
+
+  // printf("Num items checked: %i, Num items: %i", checklist_get_num_items_checked(), checklist_get_num_items());
+
 }
 
 int checklist_delete_completed_items() {
