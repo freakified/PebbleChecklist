@@ -345,6 +345,9 @@ static void window_unload(Window *window) {
   graphics_text_attributes_destroy(s_text_att);
 
   menu_layer_destroy(s_menu_layer);
+  status_bar_layer_destroy(s_status_bar);
+  text_layer_destroy(s_empty_msg_layer);
+  dictation_session_destroy(s_dictation_session);
 
   gbitmap_destroy(s_tick_black_bitmap);
   gbitmap_destroy(s_tick_white_bitmap);

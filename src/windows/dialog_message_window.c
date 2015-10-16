@@ -111,16 +111,13 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
-  // printf("UnLoading window!");
-
   layer_destroy(s_background_layer);
 
   text_layer_destroy(s_label_layer);
-
+  gbitmap_destroy(s_icon_bitmap);
+  bitmap_layer_destroy(s_icon_layer);
   gdraw_command_sequence_destroy(s_command_seq);
   layer_destroy(s_canvas_layer);
-
-  // app_timer_cancel(s_timer);
 
   window_destroy(window);
   s_main_window = NULL;
