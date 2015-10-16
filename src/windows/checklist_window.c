@@ -136,22 +136,33 @@ static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell
     imageToUse = s_tick_white_bitmap;
   }
 
-  // Draw checkbox
-  GRect r = GRect(
-    bounds.size.w - (2 * CHECKLIST_WINDOW_BOX_SIZE),
-    (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
-    CHECKLIST_WINDOW_BOX_SIZE,
-    CHECKLIST_WINDOW_BOX_SIZE
-  );
+  // on round watches, only show the checkbox for the selected item
+  bool show_checkbox = true;
 
-  graphics_draw_rect(ctx, r);
+  #ifdef PBL_ROUND
+    show_checkbox = menu_cell_layer_is_highlighted(cell_layer);
+  #endif
 
+  if(show_checkbox) {
+    GRect r = GRect(
+      bounds.size.w - (2 * CHECKLIST_WINDOW_BOX_SIZE),
+      (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
+      CHECKLIST_WINDOW_BOX_SIZE,
+      CHECKLIST_WINDOW_BOX_SIZE
+    );
+
+    graphics_draw_rect(ctx, r);
+
+    if(item->isChecked) {
+      // draw the checkmark
+      graphics_context_set_compositing_mode(ctx, GCompOpSet);
+      graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
+    }
+  }
+
+
+  // draw text strikethrough
   if(item->isChecked) {
-    // draw the checkmark
-    graphics_context_set_compositing_mode(ctx, GCompOpSet);
-    graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
-
-    // draw text strikethrough
     graphics_context_set_stroke_width(ctx, 2);
 
     GPoint strike_start_point, strike_end_point;
