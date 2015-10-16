@@ -17,6 +17,8 @@ static GBitmap *s_tick_white_bitmap;
 static GBitmap *s_add_bitmap_black;
 static GBitmap *s_add_bitmap_white;
 
+static GTextAttributes* s_text_att;
+
 static DictationSession *s_dictation_session;
 
 // Declare a buffer for the DictationSession
@@ -77,13 +79,54 @@ static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell
 
   ChecklistItem* item = checklist_get_item_by_id(id);
 
-  menu_cell_basic_draw(ctx, cell_layer, item->name, NULL, NULL);
+  GRect bounds = layer_get_bounds(cell_layer);
+
+  GRect text_bounds;
+  GTextAlignment alignment = GTextAlignmentLeft;
+
+  if(item->isChecked) {
+    if(menu_cell_layer_is_highlighted(cell_layer)) {
+      graphics_context_set_text_color(ctx, GColorLimerick);
+    } else {
+      graphics_context_set_text_color(ctx, GColorArmyGreen);
+    }
+  } else {
+    if(menu_cell_layer_is_highlighted(cell_layer)) {
+      graphics_context_set_text_color(ctx, GColorWhite);
+    } else {
+      graphics_context_set_text_color(ctx, GColorBlack);
+    }
+  }
+
+  // for single-height cells, use a standard draw command
+  if(bounds.size.h == CHECKLIST_CELL_MIN_HEIGHT) {
+    menu_cell_basic_draw(ctx, cell_layer, item->name, NULL, NULL);
+  } else {
+    // on round watches, single line cells should always be center aligned with no margin,
+    // (since anything else looks bad)
+    #ifdef PBL_ROUND
+      text_bounds = GRect(CHECKLIST_CELL_MARGIN, 0,
+                               bounds.size.w - CHECKLIST_WINDOW_BOX_SIZE * 4,
+                               bounds.size.h);
+    #else
+      text_bounds = GRect(CHECKLIST_CELL_MARGIN, 0,
+                               bounds.size.w - CHECKLIST_CELL_MARGIN * 2 - CHECKLIST_WINDOW_BOX_SIZE * 2,
+                               bounds.size.h);
+    #endif
+
+    graphics_draw_text(ctx, item->name,
+                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                       text_bounds,
+                       GTextOverflowModeTrailingEllipsis,
+                       alignment,
+                       s_text_att);
+
+  }
 
   if(menu_cell_layer_is_highlighted(cell_layer)) {
     graphics_context_set_stroke_color(ctx, GColorWhite);
   }
 
-  GRect bounds = layer_get_bounds(cell_layer);
   GRect bitmap_bounds = gbitmap_get_bounds(s_tick_black_bitmap);
 
   GBitmap *imageToUse = s_tick_black_bitmap;
@@ -110,22 +153,42 @@ static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell
 
     // draw text strikethrough
     graphics_context_set_stroke_width(ctx, 2);
-    GSize size = graphics_text_layout_get_content_size(item->name,
-                                                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                                                       bounds,
-                                                       GTextOverflowModeTrailingEllipsis,
-                                                       PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
 
-    // draw centered for round, left-aligned for rect
-    #ifdef PBL_ROUND
-      graphics_draw_line(ctx,
-                         GPoint((bounds.size.w / 2) - (size.w / 2), bounds.size.h / 2 ),
-                         GPoint((bounds.size.w / 2) + (size.w / 2), bounds.size.h / 2 ));
-    #else
-      graphics_draw_line(ctx,
-                         GPoint(5, bounds.size.h / 2 ),
-                         GPoint(5 + size.w, bounds.size.h / 2 ));
-    #endif
+    GPoint strike_start_point, strike_end_point;
+
+    strike_start_point.y = bounds.size.h / 2;
+    strike_end_point.y = bounds.size.h / 2;
+
+    // for single-height cells, draw a true strikethrough
+    if(bounds.size.h == CHECKLIST_CELL_MIN_HEIGHT) {
+      GSize text_size = graphics_text_layout_get_content_size(item->name,
+                                                   fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                                                   bounds,
+                                                   GTextOverflowModeTrailingEllipsis,
+                                                   PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
+
+      // draw centered for round, left-aligned for rect
+      #ifdef PBL_ROUND
+        strike_start_point.x = (bounds.size.w / 2) - (text_size.w / 2);
+        strike_end_point.x = (bounds.size.w / 2) + (text_size.w / 2);
+      #else
+        strike_start_point.x = CHECKLIST_CELL_MARGIN;
+        strike_end_point.x =  CHECKLIST_CELL_MARGIN + text_size.w;
+      #endif
+
+    } else {
+      // otherwise, draw a full-width line
+
+      #ifdef PBL_ROUND
+        strike_start_point.x = text_bounds.origin.x + CHECKLIST_CELL_MARGIN;
+        strike_end_point.x = text_bounds.origin.x + text_bounds.size.w - CHECKLIST_CELL_MARGIN;
+      #else
+        strike_start_point.x = CHECKLIST_CELL_MARGIN;
+        strike_end_point.x =  CHECKLIST_CELL_MARGIN + text_bounds.size.w;
+      #endif
+    }
+
+    graphics_draw_line(ctx, strike_start_point, strike_end_point);
   }
 }
 
@@ -145,13 +208,31 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
 }
 
 static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
-  return CHECKLIST_CELL_HEIGHT;
-  // #ifdef PBL_ROUND
-  //   return menu_layer_menu_index_selected(menu_layer, cell_index) ?
-  //     FOCUSED_TALL_CELL_HEIGHT : UNFOCUSED_TALL_CELL_HEIGHT;
-  // #else
-  //   return CHECKBOX_WINDOW_CELL_HEIGHT;
-  // #endif
+  if(cell_index->row == 0 || cell_index->row == checklist_get_num_items() + 1) {
+    return CHECKLIST_CELL_MIN_HEIGHT;
+  } else {
+    int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
+
+    ChecklistItem* item = checklist_get_item_by_id(id);
+
+    int screen_width = layer_get_bounds(window_get_root_layer(s_main_window)).size.w;
+    int width =  PBL_IF_ROUND_ELSE(screen_width - CHECKLIST_WINDOW_BOX_SIZE * 4, screen_width - CHECKLIST_CELL_MARGIN * 2 - CHECKLIST_WINDOW_BOX_SIZE * 2);
+
+    GSize size = graphics_text_layout_get_content_size_with_attributes(item->name,
+                                                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                                                       GRect(0, 0, width, 500),
+                                                       GTextOverflowModeTrailingEllipsis,
+                                                       PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft),
+                                                       NULL);
+
+    if(size.h > CHECKLIST_CELL_MAX_HEIGHT) {
+      return CHECKLIST_CELL_MAX_HEIGHT;
+    } else if(size.h < CHECKLIST_CELL_MIN_HEIGHT) {
+      return CHECKLIST_CELL_MIN_HEIGHT;
+    } else {
+      return size.h + CHECKLIST_CELL_MARGIN * 2;
+    }
+  }
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
@@ -192,6 +273,12 @@ static void window_load(Window *window) {
     GRect bounds = layer_get_bounds(window_layer);
   #else
     GRect bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, windowBounds.size.w, windowBounds.size.h - STATUS_BAR_LAYER_HEIGHT);
+  #endif
+
+  s_text_att = graphics_text_attributes_create();
+
+  #ifdef PBL_ROUND
+    graphics_text_attributes_enable_screen_text_flow(s_text_att, CHECKLIST_CELL_MARGIN * 2);
   #endif
 
   s_tick_black_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TICK_BLACK);
@@ -239,6 +326,8 @@ static void window_load(Window *window) {
 
 static void window_unload(Window *window) {
   checklist_deinit();
+
+  graphics_text_attributes_destroy(s_text_att);
 
   menu_layer_destroy(s_menu_layer);
 

@@ -44,7 +44,7 @@ int checklist_get_num_items_checked() {
 
 void checklist_add_item(const char* name) {
   if(checklist_length < MAX_CHECKLIST_ITEMS) {
-    strncpy(checklist_items[checklist_length].name, name, MAX_NAME_LENGTH);
+    strncpy(checklist_items[checklist_length].name, name, MAX_NAME_LENGTH - 1);
     checklist_length++;
   } else {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Failed to add checklist item; list exceeded maximum size.");
@@ -52,6 +52,9 @@ void checklist_add_item(const char* name) {
 }
 
 void checklist_item_toggle_checked(int id) {
+
+  printf("String is '%s'", checklist_items[id].name);
+
   checklist_items[id].isChecked = !(checklist_items[id].isChecked);
 
   if(checklist_items[id].isChecked) {
