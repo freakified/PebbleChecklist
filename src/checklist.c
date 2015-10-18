@@ -60,7 +60,7 @@ void checklist_add_items(char* name) {
 }
 
 void checklist_add_item(char* name) {
-  if(checklist_length < MAX_CHECKLIST_ITEMS) {
+  if(checklist_length < MAX_CHECKLIST_ITEMS && strlen(trim_whitespace(name)) > 0) {
     strncpy(checklist_items[checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
 
     // save the new item to persist
