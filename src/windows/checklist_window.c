@@ -285,7 +285,7 @@ static void window_load(Window *window) {
   GRect windowBounds = layer_get_bounds(window_layer);;
 
   #ifdef PBL_ROUND
-    GRect bounds = layer_get_bounds(window_layer);
+    GRect bounds = windowBounds;
   #else
     GRect bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, windowBounds.size.w, windowBounds.size.h - STATUS_BAR_LAYER_HEIGHT);
   #endif
