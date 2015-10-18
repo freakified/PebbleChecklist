@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pebble.h>
+#include <string.h>
 
 #define MAX_NAME_LENGTH      50
 #define MAX_CHECKLIST_ITEMS  50
@@ -28,9 +29,15 @@ extern int checklist_get_num_items();
 extern int checklist_get_num_items_checked();
 
 /*
+ * Adds one or more items to the list.
+ * Each item is identified by splitting the "name" string by a specific character
+ */
+extern void checklist_add_items(char* name);
+
+/*
  * Adds a new item to the checklist with the specified name
  */
-extern void checklist_add_item(const char* name);
+extern void checklist_add_item(char* name);
 
 /*
  * Toggles whether or not the specified item is checked

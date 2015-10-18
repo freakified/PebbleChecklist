@@ -55,7 +55,7 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
   APP_LOG(APP_LOG_LEVEL_INFO, "Dictation status: %d", (int)status);
 
   if(status == DictationSessionStatusSuccess) {
-    checklist_add_item(transcription);
+    checklist_add_items(transcription);
     menu_layer_reload_data(s_menu_layer);
   }
 }

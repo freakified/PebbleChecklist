@@ -1,4 +1,5 @@
 #include "checklist.h"
+#include "util.h"
 
 // persistent storage keys
 #define PERSIST_KEY_CHECKLIST_LENGTH       100
@@ -48,9 +49,19 @@ int checklist_get_num_items_checked() {
   return checklist_num_checked;
 }
 
-void checklist_add_item(const char* name) {
+void checklist_add_items(char* name) {
+  // strncpy(line, name, MAX_NAME_LENGTH - 1);
+  char line[MAX_NAME_LENGTH], token[MAX_NAME_LENGTH];
+
+  while(name != NULL) {
+      name = strwrd(name, token, sizeof(token), ".,");
+      checklist_add_item(token);
+  }
+}
+
+void checklist_add_item(char* name) {
   if(checklist_length < MAX_CHECKLIST_ITEMS) {
-    strncpy(checklist_items[checklist_length].name, name, MAX_NAME_LENGTH - 1);
+    strncpy(checklist_items[checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
 
     // save the new item to persist
     persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + checklist_length, &checklist_items[checklist_length], sizeof(ChecklistItem));
