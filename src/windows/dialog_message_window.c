@@ -51,14 +51,14 @@ static void update_proc(Layer *layer, GContext *ctx) {
   s_current_frame_idx++;
   if (s_current_frame_idx == num_frames) {
     //if we run out of frames, stop the animation
-    app_timer_cancel(s_timer);
+    if(s_timer != NULL) {
+      app_timer_cancel(s_timer);
+    }
     window_stack_pop(true);
   }
 }
 
 static void window_load(Window *window) {
-
-
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
@@ -111,14 +111,31 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+  if(s_canvas_layer != NULL) {
+    layer_destroy(s_canvas_layer);
+  }
+
+  if(s_label_layer != NULL) {
+    text_layer_destroy(s_label_layer);
+  }
+
+  if(s_icon_bitmap != NULL) {
+    gbitmap_destroy(s_icon_bitmap);
+  }
+
+  if(s_icon_layer != NULL) {
+    bitmap_layer_destroy(s_icon_layer);
+  }
+
+  if(s_command_seq != NULL) {
+    gdraw_command_sequence_destroy(s_command_seq);
+  }
+
+  if(s_timer != NULL) {
+    app_timer_cancel(s_timer);
+  }
+
   layer_destroy(s_background_layer);
-
-  text_layer_destroy(s_label_layer);
-  gbitmap_destroy(s_icon_bitmap);
-  bitmap_layer_destroy(s_icon_layer);
-  gdraw_command_sequence_destroy(s_command_seq);
-  layer_destroy(s_canvas_layer);
-
   window_destroy(window);
   s_main_window = NULL;
 }

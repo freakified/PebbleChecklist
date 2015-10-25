@@ -249,11 +249,11 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   if(cell_index->row == 0) {
     // the first row is always the "add" button
-    // if(s_dictation_session != NULL) {
-    //   dictation_session_start(s_dictation_session);
-    // } else {
+    if(s_dictation_session != NULL) {
+      dictation_session_start(s_dictation_session);
+    } else {
       dialog_warning_window_push("Could not access microphone.");
-    // }
+    }
   } else if(cell_index->row == checklist_get_num_items() + 1) {
     // the last row is always the "clear completed" button
     int num_deleted = checklist_delete_completed_items();
