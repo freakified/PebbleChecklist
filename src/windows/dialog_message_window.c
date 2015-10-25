@@ -91,14 +91,14 @@ static void window_load(Window *window) {
     GRect bitmap_bounds = gbitmap_get_bounds(s_icon_bitmap);
 
     s_icon_layer = bitmap_layer_create(GRect(bounds.size.w / 2 - bitmap_bounds.size.w / 2,
-                                       MARGIN * 2, bitmap_bounds.size.w, bitmap_bounds.size.h));
+                                       MARGIN * 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
 
     bitmap_layer_set_bitmap(s_icon_layer, s_icon_bitmap);
     bitmap_layer_set_compositing_mode(s_icon_layer, GCompOpSet);
     layer_add_child(window_layer, bitmap_layer_get_layer(s_icon_layer));
 
     // TODO: make this less hardcoded
-    s_label_layer = text_layer_create(GRect(MARGIN, bounds.size.h / 2 - 25, bounds.size.w - (2 * MARGIN), bounds.size.h));
+    s_label_layer = text_layer_create(GRect(MARGIN, bounds.size.h / 2 - 10, bounds.size.w - (2 * MARGIN), bounds.size.h));
   }
 
   text_layer_set_text(s_label_layer, s_message_text);
