@@ -62,6 +62,7 @@ void checklist_add_items(char* name) {
 void checklist_add_item(char* name) {
   if(checklist_length < MAX_CHECKLIST_ITEMS && strlen(trim_whitespace(name)) > 0) {
     strncpy(checklist_items[checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
+    checklist_items[checklist_length].isChecked = false;
 
     // save the new item to persist
     persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + checklist_length, &checklist_items[checklist_length], sizeof(ChecklistItem));
@@ -70,6 +71,9 @@ void checklist_add_item(char* name) {
   } else {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Failed to add checklist item; list exceeded maximum size.");
   }
+
+  // save the new checklist length
+  persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, checklist_length);
 }
 
 void checklist_item_toggle_checked(int id) {
@@ -85,7 +89,6 @@ void checklist_item_toggle_checked(int id) {
   persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + id, &checklist_items[id], sizeof(ChecklistItem));
 
   // printf("Num items checked: %i, Num items: %i", checklist_get_num_items_checked(), checklist_get_num_items());
-
 }
 
 int checklist_delete_completed_items() {
@@ -108,8 +111,7 @@ int checklist_delete_completed_items() {
 
   checklist_num_checked -= num_deleted;
 
-  // normally, i would save this change to persist immediately, but rewriting the entire
-  // persistent store takes too much time
+  // it takes too much time to rewrite the entire persistent store, so don't save immediately
   // save_data_to_storage();
 
   return num_deleted;

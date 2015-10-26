@@ -153,6 +153,7 @@ void dialog_shred_window_push(char* message) {
     });
   }
 
+  // display the window
   window_stack_push(s_main_window, true);
 }
 

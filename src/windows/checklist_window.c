@@ -256,7 +256,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     }
   } else if(cell_index->row == checklist_get_num_items() + 1) {
     // the last row is always the "clear completed" button
-    int num_deleted = checklist_delete_completed_items();
+    int num_deleted = checklist_get_num_items_checked();
 
     // generate and display "items deleted" message
     snprintf(s_deleted_msg,
@@ -264,7 +264,9 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
              ((num_deleted == 1) ? "%i Item Deleted" : "%i Items Deleted"),
              num_deleted);
 
+    // do stuff
     dialog_shred_window_push(s_deleted_msg);
+    checklist_delete_completed_items();
     menu_layer_reload_data(menu_layer);
 
   } else {
