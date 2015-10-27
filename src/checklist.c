@@ -19,7 +19,6 @@ static int s_items_per_block;
 static int s_block_size;
 
 // "Private" functions
-void checklist_init();
 void read_data_from_storage();
 void save_data_to_storage();
 void add_item(char* name);
@@ -92,7 +91,8 @@ void checklist_add_items(char* name) {
 void add_item(char* name) {
   if(s_checklist_length < MAX_CHECKLIST_ITEMS && strlen(trim_whitespace(name)) > 0) {
     strncpy(s_checklist_items[s_checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
-    s_checklist_items[s_checklist_length].isChecked = false;
+    s_checklist_items[s_checklist_length].is_checked = false;
+    s_checklist_items[s_checklist_length].sublist_id = 0;
 
     s_checklist_length++;
   } else {
@@ -101,9 +101,9 @@ void add_item(char* name) {
 }
 
 void checklist_item_toggle_checked(int id) {
-  s_checklist_items[id].isChecked = !(s_checklist_items[id].isChecked);
+  s_checklist_items[id].is_checked = !(s_checklist_items[id].is_checked);
 
-  if(s_checklist_items[id].isChecked) {
+  if(s_checklist_items[id].is_checked) {
     s_checklist_num_checked++;
   } else {
     s_checklist_num_checked--;
@@ -122,7 +122,7 @@ int checklist_delete_completed_items() {
   int i = 0;
 
   while (i < s_checklist_length) {
-    if(s_checklist_items[i].isChecked) { // is the item checked?
+    if(s_checklist_items[i].is_checked) { // is the item checked?
       // delete the item by shuffling the array backwards
       memmove(&s_checklist_items[i], &s_checklist_items[i+1], sizeof(s_checklist_items[0])*(s_checklist_length - i));
 

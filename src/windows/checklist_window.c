@@ -84,7 +84,7 @@ static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell
   GRect text_bounds;
   GTextAlignment alignment = GTextAlignmentLeft;
 
-  if(item->isChecked) {
+  if(item->is_checked) {
     if(menu_cell_layer_is_highlighted(cell_layer)) {
       graphics_context_set_text_color(ctx, GColorLimerick);
     } else {
@@ -153,7 +153,7 @@ static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell
 
     graphics_draw_rect(ctx, r);
 
-    if(item->isChecked) {
+    if(item->is_checked) {
       // draw the checkmark
       graphics_context_set_compositing_mode(ctx, GCompOpSet);
       graphics_draw_bitmap_in_rect(ctx, imageToUse, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
@@ -162,7 +162,7 @@ static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell
 
 
   // draw text strikethrough
-  if(item->isChecked) {
+  if(item->is_checked) {
     graphics_context_set_stroke_width(ctx, 2);
 
     GPoint strike_start_point, strike_end_point;

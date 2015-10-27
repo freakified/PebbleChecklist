@@ -11,7 +11,10 @@ typedef struct ChecklistItem {
   char name[MAX_NAME_LENGTH];
 
   // is the item checked?
-  bool isChecked;
+  bool is_checked;
+
+  // reserved for future use
+  int sublist_id;
 } ChecklistItem;
 
 
