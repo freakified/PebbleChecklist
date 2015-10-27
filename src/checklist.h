@@ -35,11 +35,6 @@ extern int checklist_get_num_items_checked();
 extern void checklist_add_items(char* name);
 
 /*
- * Adds a new item to the checklist with the specified name
- */
-extern void checklist_add_item(char* name);
-
-/*
  * Toggles whether or not the specified item is checked
  */
 extern void checklist_item_toggle_checked(int id);

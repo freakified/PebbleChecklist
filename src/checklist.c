@@ -3,50 +3,77 @@
 
 // persistent storage keys
 #define PERSIST_KEY_CHECKLIST_LENGTH       100
+#define PERSIST_KEY_CHECKLIST_NUM_CHECKED  101
 
 // the checklist will occupy storage keys from 200 to 200 + MAX_CHECKLIST_ITEMS
-#define PERSIST_KEY_CHECKLIST_ITEM_FIRST  200
+// #define PERSIST_KEY_CHECKLIST_ITEM_FIRST  200
+#define PERSIST_KEY_CHECKLIST_BLOCK_FIRST  300
 
-static ChecklistItem checklist_items[MAX_CHECKLIST_ITEMS];
+static ChecklistItem s_checklist_items[MAX_CHECKLIST_ITEMS];
 
-static int checklist_length;
-static int checklist_num_checked;
+static int s_checklist_length;
+static int s_checklist_num_checked;
+
+// storage parameters
+static int s_items_per_block;
+static int s_block_size;
+
+// "Private" functions
+void checklist_init();
+void read_data_from_storage();
+void save_data_to_storage();
+void add_item(char* name);
 
 void checklist_init() {
-  // load checklist information from storage
-  checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
-  checklist_num_checked = 0;
+  // determine storage params
+  s_items_per_block =  PERSIST_DATA_MAX_LENGTH / sizeof(ChecklistItem);
+  s_block_size = sizeof(ChecklistItem) * s_items_per_block;
 
-  // load the rest of the checklist
-  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
-    persist_read_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i, &checklist_items[i], sizeof(ChecklistItem));
-
-    if(checklist_items[i].isChecked) {
-      checklist_num_checked++;
-    }
-  }
-}
-
-void save_data_to_storage() {
-  // save checklist information
-  persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, checklist_length);
-
-  // save the rest of the checklist
-  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
-    persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i, &checklist_items[i], sizeof(ChecklistItem));
-  }
+  read_data_from_storage();
 }
 
 void checklist_deinit() {
   save_data_to_storage();
 }
 
+void read_data_from_storage() {
+  printf("reading data");
+  // load checklist information from storage
+  s_checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
+  s_checklist_num_checked = persist_read_int(PERSIST_KEY_CHECKLIST_NUM_CHECKED);
+
+  // load the checklist by the block
+  int num_blocks_required = s_checklist_length / s_items_per_block + 1;
+
+  for(int block = 0; block < num_blocks_required; block++) {
+    persist_read_data(PERSIST_KEY_CHECKLIST_BLOCK_FIRST + block,
+                       &s_checklist_items[block * s_items_per_block],
+                       s_block_size);
+  }
+}
+
+void save_data_to_storage() {
+  // save checklist information
+  persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, s_checklist_length);
+  persist_write_int(PERSIST_KEY_CHECKLIST_NUM_CHECKED , s_checklist_num_checked);
+
+  // save the rest of the checklist
+  // calculate how many persist blocks we'll need
+  int num_blocks_required = s_checklist_length / s_items_per_block + 1;
+
+  for(int block = 0; block < num_blocks_required; block++) {
+    persist_write_data(PERSIST_KEY_CHECKLIST_BLOCK_FIRST + block,
+                       &s_checklist_items[block * s_items_per_block],
+                       s_block_size);
+  }
+}
+
 int checklist_get_num_items() {
-  return checklist_length;
+  return s_checklist_length;
 }
 
 int checklist_get_num_items_checked() {
-  return checklist_num_checked;
+  return s_checklist_num_checked;
 }
 
 void checklist_add_items(char* name) {
@@ -55,38 +82,35 @@ void checklist_add_items(char* name) {
 
   while(name != NULL) {
       name = strwrd(name, token, sizeof(token), ".,");
-      checklist_add_item(token);
+      add_item(token);
   }
+
+  // save the new checklist information
+  save_data_to_storage();
 }
 
-void checklist_add_item(char* name) {
-  if(checklist_length < MAX_CHECKLIST_ITEMS && strlen(trim_whitespace(name)) > 0) {
-    strncpy(checklist_items[checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
-    checklist_items[checklist_length].isChecked = false;
+void add_item(char* name) {
+  if(s_checklist_length < MAX_CHECKLIST_ITEMS && strlen(trim_whitespace(name)) > 0) {
+    strncpy(s_checklist_items[s_checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
+    s_checklist_items[s_checklist_length].isChecked = false;
 
-    // save the new item to persist
-    persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + checklist_length, &checklist_items[checklist_length], sizeof(ChecklistItem));
-
-    checklist_length++;
+    s_checklist_length++;
   } else {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Failed to add checklist item; list exceeded maximum size.");
   }
-
-  // save the new checklist length
-  persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, checklist_length);
 }
 
 void checklist_item_toggle_checked(int id) {
-  checklist_items[id].isChecked = !(checklist_items[id].isChecked);
+  s_checklist_items[id].isChecked = !(s_checklist_items[id].isChecked);
 
-  if(checklist_items[id].isChecked) {
-    checklist_num_checked++;
+  if(s_checklist_items[id].isChecked) {
+    s_checklist_num_checked++;
   } else {
-    checklist_num_checked--;
+    s_checklist_num_checked--;
   }
 
   // save the edited item to persist
-  persist_write_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + id, &checklist_items[id], sizeof(ChecklistItem));
+  save_data_to_storage();
 
   // printf("Num items checked: %i, Num items: %i", checklist_get_num_items_checked(), checklist_get_num_items());
 }
@@ -97,26 +121,26 @@ int checklist_delete_completed_items() {
 
   int i = 0;
 
-  while (i < checklist_length) {
-    if(checklist_items[i].isChecked) { // is the item checked?
+  while (i < s_checklist_length) {
+    if(s_checklist_items[i].isChecked) { // is the item checked?
       // delete the item by shuffling the array backwards
-      memmove(&checklist_items[i], &checklist_items[i+1], sizeof(checklist_items[0])*(checklist_length - i));
+      memmove(&s_checklist_items[i], &s_checklist_items[i+1], sizeof(s_checklist_items[0])*(s_checklist_length - i));
 
       num_deleted++;
-      checklist_length--;
+      s_checklist_length--;
     } else {
       i++;
     }
   }
 
-  checklist_num_checked -= num_deleted;
+  s_checklist_num_checked -= num_deleted;
 
   // it takes too much time to rewrite the entire persistent store, so don't save immediately
-  // save_data_to_storage();
+  save_data_to_storage();
 
   return num_deleted;
 }
 
 ChecklistItem* checklist_get_item_by_id(int id) {
-  return &checklist_items[id];
+  return &s_checklist_items[id];
 }
