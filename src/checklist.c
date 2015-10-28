@@ -1,12 +1,13 @@
 #include "checklist.h"
 #include "util.h"
 
+// constants
+#define CURRENT_CHECKLIST_DATA_VERSION 2
+
 // persistent storage keys
+#define PERSIST_KEY_CHECKLIST_DATA_VERSION 50
 #define PERSIST_KEY_CHECKLIST_LENGTH       100
 #define PERSIST_KEY_CHECKLIST_NUM_CHECKED  101
-
-// the checklist will occupy storage keys from 200 to 200 + MAX_CHECKLIST_ITEMS
-// #define PERSIST_KEY_CHECKLIST_ITEM_FIRST  200
 #define PERSIST_KEY_CHECKLIST_BLOCK_FIRST  300
 
 static ChecklistItem s_checklist_items[MAX_CHECKLIST_ITEMS];
@@ -35,8 +36,41 @@ void checklist_deinit() {
   save_data_to_storage();
 }
 
+// legacy support: remove in future version
+// the checklist will occupy storage keys from 200 to 200 + MAX_CHECKLIST_ITEMS
+#define PERSIST_KEY_CHECKLIST_ITEM_FIRST  200
+
+void migrate_legacy_data() {
+  // load legacy checklist information from storage
+  s_checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
+  s_checklist_num_checked = 0;
+
+  // load the legacy checklist data from storage
+  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
+    persist_read_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i, &s_checklist_items[i], sizeof(ChecklistItem));
+
+    if(s_checklist_items[i].is_checked) {
+      s_checklist_num_checked++;
+    }
+  }
+
+  // now write the data in the new format
+  save_data_to_storage();
+
+  // delete the old data
+  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
+    persist_delete(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i);
+  }
+}
+
 void read_data_from_storage() {
-  printf("reading data");
+  // check if migration is necessary
+  int saved_version = persist_read_int(PERSIST_KEY_CHECKLIST_DATA_VERSION);
+
+  if(saved_version < CURRENT_CHECKLIST_DATA_VERSION) {
+    migrate_legacy_data();
+  }
+
   // load checklist information from storage
   s_checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
   s_checklist_num_checked = persist_read_int(PERSIST_KEY_CHECKLIST_NUM_CHECKED);
@@ -52,6 +86,9 @@ void read_data_from_storage() {
 }
 
 void save_data_to_storage() {
+  // save version info
+  persist_write_int(PERSIST_KEY_CHECKLIST_DATA_VERSION, CURRENT_CHECKLIST_DATA_VERSION);
+
   // save checklist information
   persist_write_int(PERSIST_KEY_CHECKLIST_LENGTH, s_checklist_length);
   persist_write_int(PERSIST_KEY_CHECKLIST_NUM_CHECKED , s_checklist_num_checked);
