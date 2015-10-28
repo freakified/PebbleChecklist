@@ -117,19 +117,24 @@ void checklist_add_items(char* name) {
   char line[MAX_NAME_LENGTH], token[MAX_NAME_LENGTH];
 
   while(name != NULL) {
+      // set "token" to the next word
       name = strwrd(name, token, sizeof(token), ".,");
+
+      // add the word
       add_item(token);
   }
-
-  // save the new checklist information
-  // save_data_to_storage();
 }
 
 void add_item(char* name) {
-  if(s_checklist_length < MAX_CHECKLIST_ITEMS && strlen(trim_whitespace(name)) > 0) {
-    strncpy(s_checklist_items[s_checklist_length].name, trim_whitespace(name), MAX_NAME_LENGTH - 1);
+  name = capitalize(trim_whitespace(name));
+
+  if(s_checklist_length < MAX_CHECKLIST_ITEMS && strlen(name) > 0) {
+    strncpy(s_checklist_items[s_checklist_length].name, name, MAX_NAME_LENGTH - 1);
     s_checklist_items[s_checklist_length].is_checked = false;
     s_checklist_items[s_checklist_length].sublist_id = 0;
+
+    // capitalize the item
+    // s_checklist_items[s_checklist_length].name[0] = toupper(int);
 
     s_checklist_length++;
   } else {

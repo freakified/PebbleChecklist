@@ -9,14 +9,21 @@ bool menu_layer_menu_index_selected(MenuLayer *menu_layer, MenuIndex *index) {
  * Returns if a given character counts as whitespace
  */
 char is_space(char c) {
-        return (c == ' ' || c == '\t' || c == '\n');
+  return (c == ' ' || c == '\t' || c == '\n');
+}
+
+char *capitalize(char *str) {
+  // capitalize the first letter
+  (*str) = toupper((int)(*str));
+
+  return str;
 }
 
 /*
  * Trims the whitespace from the specified string.
  * From: http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
  */
-char *trim_whitespace(char *str) {
+char* trim_whitespace(char *str) {
   char *end;
 
   // Trim leading space
