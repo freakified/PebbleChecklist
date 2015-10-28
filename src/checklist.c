@@ -85,7 +85,7 @@ void checklist_add_items(char* name) {
   }
 
   // save the new checklist information
-  save_data_to_storage();
+  // save_data_to_storage();
 }
 
 void add_item(char* name) {
@@ -110,7 +110,7 @@ void checklist_item_toggle_checked(int id) {
   }
 
   // save the edited item to persist
-  save_data_to_storage();
+  // save_data_to_storage();
 
   // printf("Num items checked: %i, Num items: %i", checklist_get_num_items_checked(), checklist_get_num_items());
 }
@@ -135,8 +135,7 @@ int checklist_delete_completed_items() {
 
   s_checklist_num_checked -= num_deleted;
 
-  // it takes too much time to rewrite the entire persistent store, so don't save immediately
-  save_data_to_storage();
+  // save_data_to_storage();
 
   return num_deleted;
 }

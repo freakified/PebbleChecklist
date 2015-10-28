@@ -3,8 +3,8 @@
 #include <pebble.h>
 #include <string.h>
 
-#define MAX_NAME_LENGTH      50
-#define MAX_CHECKLIST_ITEMS  50
+#define MAX_NAME_LENGTH     50
+#define MAX_CHECKLIST_ITEMS 52
 
 typedef struct ChecklistItem {
   // the name displayed for the item
@@ -14,9 +14,8 @@ typedef struct ChecklistItem {
   bool is_checked;
 
   // reserved for future use
-  int sublist_id;
+  uint8_t sublist_id;
 } ChecklistItem;
-
 
 extern void checklist_init();
 extern void checklist_deinit();
