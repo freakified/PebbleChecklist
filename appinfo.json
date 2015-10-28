@@ -3,7 +3,7 @@
   "shortName": "Checklist",
   "longName": "Checklist",
   "companyName": "Freakified",
-  "versionLabel": "1.2",
+  "versionLabel": "1.3",
   "sdkVersion": "3",
   "targetPlatforms": ["basalt", "chalk"],
   "watchapp": {
