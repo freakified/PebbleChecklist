@@ -13,9 +13,12 @@ function updateSubmitButtonVisibility() {
   });
 
   if(count > 0) {
-    $('#submit_button').removeClass('disabled');
+    var buttonText = 'SEND ' + count + ' ITEM' + ((count > 1) ? 'S' : '') + ' TO WATCH';
+    $('#submit_button').attr('value', buttonText);
+    $('#submit_button').removeClass('hidden');
   } else {
-    $('#submit_button').addClass('disabled');
+    $('#submit_button').addClass('hidden');
+
   }
 }
 
