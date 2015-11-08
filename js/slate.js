@@ -274,8 +274,9 @@ var Zepto=function(){function L(t){return null==t?String(t):j[S.call(t)]||"objec
     itemDynamicList: function() {
       this.each(function() {
         var $list = $(this);
+        var $items = $list.children('label');
 
-        $list.children('label').each(function() {
+        $items.each(function() {
           var $deleteButton = $('<div class="delete-item"></div>');
 
           $deleteButton.click(function() {
@@ -285,7 +286,7 @@ var Zepto=function(){function L(t){return null==t?String(t):j[S.call(t)]||"objec
           $(this).append($deleteButton);
         });
 
-        var $addButton = $('<div class="item add-item">Add one more...</div>');
+        var $addButton = $('<div class="item add-item">Add item</div>');
 
         $list.append($addButton);
 
@@ -314,15 +315,20 @@ var Zepto=function(){function L(t){return null==t?String(t):j[S.call(t)]||"objec
 
           function stopEditing(input, inbox) {
             var text = input.val();
-            inbox.text(text);
+            
+            if(text != '') {
+              inbox.text(text);
 
-            var deletebutton = $('<div class="delete-item"></div>');
+              var deletebutton = $('<div class="delete-item"></div>');
 
-            deletebutton.click(function(){
-              $(this).parent().remove();
-            });
+              deletebutton.click(function(){
+                $(this).parent().remove();
+              });
 
-            inbox.append(deletebutton);
+              inbox.append(deletebutton);
+            } else {
+              inbox.remove()
+            }
           }
         });
       });

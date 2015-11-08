@@ -24,8 +24,8 @@ a {
 body {
   background-color: #EAEAEA;
   margin-bottom: 15px;
-  font-size: 1.2em;
-  line-height: 1.4em;
+  font-size: 17px;
+  line-height: 1.2;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
@@ -90,15 +90,15 @@ input[type=date] {
 
 .item-container-footer {
   padding: 3px 10px;
-  font-size: .7em;
   line-height: 1.4em;
-  color: #A8A8A8; }
+  color: #666; }
 
 .item {
   position: relative;
-  padding: 10px;
+  padding: 10px 10px 8px 10px;
   display: block;
-  overflow: hidden; }
+  overflow: hidden;
+  line-height: 2; }
 
 .item:not(:first-child) {
   border-top: 1px solid #DEDEDE; }
@@ -319,8 +319,8 @@ input[type=date] {
   text-align: center; }
 
 .item-button {
-  width: 60%;
-  height: 35px;
+  width: 95%;
+  height: 40px;
   background-color: #FF4700;
   border-radius: 5px;
   color: white;
@@ -433,7 +433,7 @@ input[type=date] {
   width: 30px;
   height: 30px;
   right: 5px;
-  top: 5px;
+  top: 9px;
   position: absolute;
   border-radius: 6px; }
 
