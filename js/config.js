@@ -1,5 +1,23 @@
+$(document).on('click', updateSubmitButtonVisibility);
 $('#title').on('click', cancelAndClose);
 $('#submit_button').on('click', sendDataToWatch);
+
+function updateSubmitButtonVisibility() {
+  var $items = $('#items_to_add').children('.item:not(.add-item)');
+  var count = 0;
+
+  $items.each(function() {
+    if($(this).text() != '') {
+      count++;
+    }
+  });
+
+  if(count > 0) {
+    $('#submit_button').removeClass('disabled');
+  } else {
+    $('#submit_button').addClass('disabled');
+  }
+}
 
 function getQueryParam(variable, defaultValue) {
   // Find all URL parameters
