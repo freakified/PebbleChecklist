@@ -34,7 +34,7 @@ extern int checklist_get_num_items_checked();
  * Adds one or more items to the list.
  * Each item is identified by splitting the "name" string by a specific character
  */
-extern void checklist_add_items(char* name);
+extern void checklist_add_items(char *name);
 
 /*
  * Toggles whether or not the specified item is checked

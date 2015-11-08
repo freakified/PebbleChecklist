@@ -17,7 +17,7 @@ static GBitmap *s_tick_white_bitmap;
 static GBitmap *s_add_bitmap_black;
 static GBitmap *s_add_bitmap_white;
 
-static GTextAttributes* s_text_att;
+static GTextAttributes *s_text_att;
 
 static DictationSession *s_dictation_session;
 
@@ -73,11 +73,11 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
   }
 }
 
-static void draw_checkbox_cell(GContext* ctx, Layer* cell_layer, MenuIndex *cell_index) {
+static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index) {
   // draw a checklist item
   int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
 
-  ChecklistItem* item = checklist_get_item_by_id(id);
+  ChecklistItem *item = checklist_get_item_by_id(id);
 
   GRect bounds = layer_get_bounds(cell_layer);
 
@@ -224,7 +224,7 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
   } else {
     int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
 
-    ChecklistItem* item = checklist_get_item_by_id(id);
+    ChecklistItem *item = checklist_get_item_by_id(id);
 
     int screen_width = layer_get_bounds(window_get_root_layer(s_main_window)).size.w;
     int width =  PBL_IF_ROUND_ELSE(screen_width - CHECKLIST_WINDOW_BOX_SIZE * 4, screen_width - CHECKLIST_CELL_MARGIN * 2 - CHECKLIST_WINDOW_BOX_SIZE * 2);

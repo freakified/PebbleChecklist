@@ -140,7 +140,7 @@ static void window_unload(Window *window) {
   s_main_window = NULL;
 }
 
-void dialog_shred_window_push(char* message) {
+void dialog_shred_window_push(char *message) {
   s_dialog_type = SHRED;
   s_message_text = message;
 
@@ -157,7 +157,7 @@ void dialog_shred_window_push(char* message) {
   window_stack_push(s_main_window, true);
 }
 
-void dialog_warning_window_push(char* message) {
+void dialog_warning_window_push(char *message) {
   s_dialog_type = WARNING;
   s_message_text = message;
 

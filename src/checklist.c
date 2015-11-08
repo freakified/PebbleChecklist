@@ -22,7 +22,7 @@ static int s_block_size;
 // "Private" functions
 void read_data_from_storage();
 void save_data_to_storage();
-void add_item(char* name);
+void add_item(char *name);
 
 void checklist_init() {
   // determine storage params
@@ -112,7 +112,7 @@ int checklist_get_num_items_checked() {
   return s_checklist_num_checked;
 }
 
-void checklist_add_items(char* name) {
+void checklist_add_items(char *name) {
   // strncpy(line, name, MAX_NAME_LENGTH - 1);
   char line[MAX_NAME_LENGTH], token[MAX_NAME_LENGTH];
 
@@ -125,7 +125,7 @@ void checklist_add_items(char* name) {
   }
 }
 
-void add_item(char* name) {
+void add_item(char *name) {
   name = capitalize(trim_whitespace(name));
 
   if(s_checklist_length < MAX_CHECKLIST_ITEMS && strlen(name) > 0) {
@@ -182,6 +182,6 @@ int checklist_delete_completed_items() {
   return num_deleted;
 }
 
-ChecklistItem* checklist_get_item_by_id(int id) {
+ChecklistItem *checklist_get_item_by_id(int id) {
   return &s_checklist_items[id];
 }
