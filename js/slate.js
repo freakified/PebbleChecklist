@@ -315,7 +315,7 @@ var Zepto=function(){function L(t){return null==t?String(t):j[S.call(t)]||"objec
 
           function stopEditing(input, inbox) {
             var text = input.val();
-            
+
             if(text != '') {
               inbox.text(text);
 
@@ -323,9 +323,11 @@ var Zepto=function(){function L(t){return null==t?String(t):j[S.call(t)]||"objec
 
               deletebutton.click(function(){
                 $(this).parent().remove();
+                $list.trigger('change');
               });
 
               inbox.append(deletebutton);
+              $list.trigger('change');
             } else {
               inbox.remove()
             }

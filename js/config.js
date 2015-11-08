@@ -1,4 +1,4 @@
-$(document).on('click', updateSubmitButtonVisibility);
+$('#items_to_add').on('change', updateSubmitButtonVisibility);
 $('#title').on('click', cancelAndClose);
 $('#submit_button').on('click', sendDataToWatch);
 
