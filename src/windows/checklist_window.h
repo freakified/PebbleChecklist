@@ -9,3 +9,4 @@
 #define CHECKLIST_CELL_MARGIN        5
 
 void checklist_window_push();
+void checklist_window_refresh();

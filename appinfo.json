@@ -10,8 +10,9 @@
     "watchface": false
   },
   "appKeys": {
-    "dummy": 0
+    "KEY_ITEMS_TO_ADD": 1
   },
+  "capabilities": [ "configurable" ],
   "resources": {
     "media": [
       {

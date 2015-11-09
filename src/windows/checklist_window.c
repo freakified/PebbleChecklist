@@ -60,7 +60,6 @@ static void dictation_session_callback(DictationSession *session, DictationSessi
   }
 }
 
-
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
   if(checklist_get_num_items() == 0) {
     return 1;
@@ -369,4 +368,10 @@ void checklist_window_push() {
     });
   }
   window_stack_push(s_main_window, true);
+}
+
+void checklist_window_refresh() {
+  if(s_menu_layer != NULL) {
+    menu_layer_reload_data(s_menu_layer);
+  }
 }
