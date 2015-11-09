@@ -12,6 +12,9 @@
   color: white;
   padding: 15px;
   font-weight: 300;
+  position: absolute;
+  top: 1px;
+  left: 6px;
 }
 
 .main-toolbar h1::before {
@@ -21,6 +24,8 @@
   left: 3px;
   top: 0;
   opacity: 0.6;
+  left: 0px;
+  top: -2px;
 }
 
 .item-button.disabled {
