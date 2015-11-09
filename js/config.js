@@ -1,5 +1,5 @@
 // reverse function from http://stackoverflow.com/questions/1394020/jquery-each-backwards
-jQuery.fn.reverse = [].reverse;
+Zepto.fn.reverse = [].reverse;
 
 $('#items_to_add').on('change', updateSubmitButtonVisibility);
 $('#title').on('click', cancelAndClose);
