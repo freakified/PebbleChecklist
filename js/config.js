@@ -1,3 +1,6 @@
+// reverse function from http://stackoverflow.com/questions/1394020/jquery-each-backwards
+jQuery.fn.reverse = [].reverse;
+
 $('#items_to_add').on('change', updateSubmitButtonVisibility);
 $('#title').on('click', cancelAndClose);
 $('#submit_button').on('click', sendDataToWatch);
@@ -18,7 +21,6 @@ function updateSubmitButtonVisibility() {
     $('#submit_button').removeClass('hidden');
   } else {
     $('#submit_button').addClass('hidden');
-
   }
 }
 
@@ -47,13 +49,13 @@ function sendDataToWatch() {
   var config = {};
 
   var $items = $('#items_to_add').children('.item:not(.add-item)');
-  var addString = '';
+  var itemsToAdd = '';
 
-  $items.each(function() {
-    addString += $(this).text() + '.';
+  $items.reverse().each(function() {
+    itemsToAdd += $(this).text() + '.';
   });
 
-  config.addString = addString;
+  config.itemsToAdd = itemsToAdd;
 
   // Set the return URL depending on the runtime environment
   var return_to = getQueryParam('return_to', 'pebblejs://close#');
