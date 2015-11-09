@@ -10,22 +10,20 @@
 .main-toolbar h1 {
   font-size: 1.2em;
   color: white;
-  padding: 15px;
+  padding: 0;
   font-weight: 300;
   position: absolute;
-  top: 1px;
-  left: 6px;
+  top: 14px;
+  left: 16px;
 }
 
 .main-toolbar h1::before {
   content: '‹';
   font-size: 40px;
   position: absolute;
-  left: 3px;
-  top: 0;
   opacity: 0.6;
-  left: 0px;
-  top: -2px;
+  left: -12px;
+  top: -14px;
 }
 
 .item-button.disabled {
