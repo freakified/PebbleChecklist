@@ -3,7 +3,7 @@ var BASE_CONFIG_URL = 'http://localhost:4000/';
 // var BASE_CONFIG_URL = 'http://freakified.github.io/TimeStylePebble/';
 
 Pebble.addEventListener('ready', function(e) {
-  console.log('JS component loaded');
+  console.log('JS component loaded!');
 });
 
 // open the config page when requested
