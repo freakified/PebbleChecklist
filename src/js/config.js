@@ -1,6 +1,6 @@
-var BASE_CONFIG_URL = 'http://localhost:4000/';
-// var BASE_CONFIG_URL = 'http://192.168.1.105:4000/';
-// var BASE_CONFIG_URL = 'http://freakified.github.io/TimeStylePebble/';
+// var BASE_CONFIG_URL = 'http://localhost:4000/';
+// var BASE_CONFIG_URL = 'http://192.168.0.103:4000/';
+var BASE_CONFIG_URL = 'http://freakified.github.io/PebbleChecklist/';
 
 Pebble.addEventListener('ready', function(e) {
   console.log('JS component loaded!');
