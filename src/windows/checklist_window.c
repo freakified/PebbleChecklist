@@ -24,8 +24,56 @@ static DictationSession *s_dictation_session;
 // Declare a buffer for the DictationSession
 static char s_last_text[512];
 
-// Buffer to hold alert message (TODO is this needed?)
+// buffer to hold alert message
 static char s_deleted_msg[30];
+
+// action bar stuff
+static Layer *s_menu_indicator_layer;
+static ActionMenu *s_action_menu;
+static ActionMenuLevel *s_root_level;
+
+typedef enum {
+  DeleteItem,
+  MoveItem,
+  PinItemToTimeline
+} ContextAction;
+
+typedef struct {
+  ContextAction action;
+} Context;
+
+static void action_performed_callback(ActionMenu *action_menu, const ActionMenuItem *action, void *context) {
+  // intentionally left blank for now
+}
+
+static void init_action_menu() {
+  // Create the root level
+  s_root_level = action_menu_level_create(4);
+
+  // Set up the actions for this level, using action context to pass types
+  action_menu_level_add_action(s_root_level, "Delete item", action_performed_callback,
+                               &(Context){.action=DeleteItem});
+  action_menu_level_add_action(s_root_level, "Move item", action_performed_callback,
+                               &(Context){.action=MoveItem});
+  action_menu_level_add_action(s_root_level, "Pin to timeline", action_performed_callback,
+                               &(Context){.action=PinItemToTimeline});
+}
+
+/*********************************** Action bar click handlers ******************/
+static void long_click_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
+  // Configure the ActionMenu Window about to be shown
+  ActionMenuConfig config = (ActionMenuConfig) {
+    .root_level = s_root_level,
+    .colors = {
+      .background = BG_COLOR,
+      .foreground = GColorBlack,
+    },
+    .align = ActionMenuAlignTop
+  };
+
+  // Show the ActionMenu
+  s_action_menu = action_menu_open(&config);
+}
 
 static void draw_add_button(GContext *ctx, Layer *cell_layer) {
   GRect bounds = layer_get_bounds(cell_layer);
@@ -310,10 +358,11 @@ static void window_load(Window *window) {
       .draw_row = (MenuLayerDrawRowCallback)draw_row_callback,
       .get_cell_height = (MenuLayerGetCellHeightCallback)get_cell_height_callback,
       .select_click = (MenuLayerSelectCallback)select_callback,
+      .select_long_click = (MenuLayerSelectCallback)long_click_callback,
   });
 
-  window_set_background_color(window, GColorYellow);
-  menu_layer_set_normal_colors(s_menu_layer, GColorYellow, GColorBlack);
+  window_set_background_color(window, BG_COLOR);
+  menu_layer_set_normal_colors(s_menu_layer, BG_COLOR, GColorBlack);
   menu_layer_set_highlight_colors(s_menu_layer, GColorArmyGreen, GColorWhite);
 
   layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
@@ -321,7 +370,7 @@ static void window_load(Window *window) {
   s_status_bar = status_bar_layer_create();
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
 
-  status_bar_layer_set_colors(s_status_bar, GColorYellow, GColorBlack);
+  status_bar_layer_set_colors(s_status_bar, BG_COLOR, GColorBlack);
 
   // Create dictation session
   s_dictation_session = dictation_session_create(sizeof(s_last_text),
@@ -355,6 +404,8 @@ static void window_unload(Window *window) {
   gbitmap_destroy(s_add_bitmap_black);
   gbitmap_destroy(s_add_bitmap_white);
 
+  action_menu_hierarchy_destroy(s_root_level, NULL, NULL);
+
   window_destroy(window);
   s_main_window = NULL;
 }
@@ -368,6 +419,7 @@ void checklist_window_push() {
     });
   }
   window_stack_push(s_main_window, true);
+  init_action_menu();
 }
 
 void checklist_window_refresh() {
