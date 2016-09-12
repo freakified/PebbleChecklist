@@ -81,11 +81,11 @@ static void window_load(Window *window) {
 
     s_timer = app_timer_register(DELTA, next_frame_handler, NULL);
 
-    s_background_color = GColorLimerick;
+    s_background_color = PBL_IF_COLOR_ELSE(GColorLimerick, GColorWhite);
 
     s_label_layer = text_layer_create(GRect(MARGIN, bounds.size.h / 2 + 15 + MARGIN, bounds.size.w - (2 * MARGIN), bounds.size.h));
   } else {
-    s_background_color = GColorOrange;
+    s_background_color = PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite);;
 
     s_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WARNING);
     GRect bitmap_bounds = gbitmap_get_bounds(s_icon_bitmap);

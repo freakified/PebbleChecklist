@@ -8,7 +8,9 @@
 #define CHECKLIST_CELL_MAX_HEIGHT   82
 #define CHECKLIST_CELL_MARGIN        5
 
-#define BG_COLOR GColorYellow
+
+#define BG_COLOR PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite)
+
 
 void checklist_window_push();
 void checklist_window_refresh();

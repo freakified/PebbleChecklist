@@ -1,0 +1,73 @@
+{
+  "version": "1.6.0",
+  "author": "Freakified",
+  "private": true,
+  "dependencies": {},
+  "keywords": [
+    "pebble-app"
+  ],
+  "pebble": {
+    "sdkVersion": "3",
+    "resources": {
+      "media": [
+        {
+          "menuIcon": true,
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/menu_icon.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "TICK_BLACK",
+          "file": "images/tick_black.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "TICK_WHITE",
+          "file": "images/tick_white.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ADD_BLACK",
+          "file": "images/add_black.png"
+        },
+        {
+          "type": "raw",
+          "name": "DELETED_SEQUENCE",
+          "file": "images/deleted_sequence.pdc"
+        },
+        {
+          "type": "bitmap",
+          "name": "ADD_WHITE",
+          "file": "images/add_white.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "WARNING",
+          "file": "images/warning.png"
+        }
+      ]
+    },
+    "projectType": "native",
+    "uuid": "b938082c-c230-4b8f-847d-15b27b1f907e",
+    "messageKeys": {
+      "KEY_ITEMS_TO_ADD": 0
+    },
+    "enableMultiJS": false,
+    "displayName": "Checklist",
+    "watchapp": {
+      "onlyShownOnCommunication": false,
+      "hiddenApp": false,
+      "watchface": false
+    },
+    "targetPlatforms": [
+      "basalt",
+      "chalk",
+      "diorite"
+    ],
+    "capabilities": [
+      "configurable"
+    ]
+  },
+  "name": "Checklist"
+}
