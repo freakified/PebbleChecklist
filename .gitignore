@@ -1,3 +1,4 @@
+.vscode
 
 # Ignore build generated files
 build
@@ -27,3 +28,5 @@ build
 Network Trash Folder
 Temporary Items
 .apdisk
+
+node_modules/
