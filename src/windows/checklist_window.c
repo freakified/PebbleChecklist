@@ -325,9 +325,8 @@ static void window_load(Window *window) {
   status_bar_layer_set_colors(s_status_bar, BG_COLOR, GColorBlack);
 
   // Create dictation session
-  // s_dictation_session = dictation_session_create(sizeof(s_last_text),
-  //                                                dictation_session_callback, NULL);
-  s_dictation_session = NULL;
+  s_dictation_session = dictation_session_create(sizeof(s_last_text),
+                                                 dictation_session_callback, NULL);
 
   s_empty_msg_layer = text_layer_create(PBL_IF_ROUND_ELSE(
     GRect(0, bounds.size.h / 2 + 40, bounds.size.w, bounds.size.h),
