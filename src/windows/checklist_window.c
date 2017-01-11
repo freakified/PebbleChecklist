@@ -205,26 +205,17 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer, MenuIndex *cell
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
   layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (checklist_get_num_items() != 0));
 
-  if(s_dictation_session != NULL) {
-    if(cell_index->row == 0) {
-      // draw the add action
-      draw_add_button(ctx, cell_layer);
-    } else if(cell_index->row == checklist_get_num_items() + 1) {
-      // draw the clear action
-      menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
-    } else {
-      // draw the checkbox
-      draw_checkbox_cell(ctx, cell_layer, cell_index);
-    }
+  if(cell_index->row == 0) {
+    // draw the add action
+    draw_add_button(ctx, cell_layer);
+  } else if(cell_index->row == checklist_get_num_items() + 1) {
+    // draw the clear action
+    menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
   } else {
-    if(cell_index->row == checklist_get_num_items()) {
-      // draw the clear action
-      menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
-    } else {
-      // draw the checkbox
-      draw_checkbox_cell(ctx, cell_layer, cell_index);
-    }
+    // draw the checkbox
+    draw_checkbox_cell(ctx, cell_layer, cell_index);
   }
+
 }
 
 static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
@@ -261,7 +252,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     if(s_dictation_session != NULL) {
       dictation_session_start(s_dictation_session);
     } else {
-      dialog_warning_window_push("Could not access microphone.");
+      dialog_warning_window_push("Voice is offline, add items via the settings page.");
     }
   } else if(cell_index->row == checklist_get_num_items() + 1) {
     // the last row is always the "clear completed" button
@@ -334,8 +325,9 @@ static void window_load(Window *window) {
   status_bar_layer_set_colors(s_status_bar, BG_COLOR, GColorBlack);
 
   // Create dictation session
-  s_dictation_session = dictation_session_create(sizeof(s_last_text),
-                                                 dictation_session_callback, NULL);
+  // s_dictation_session = dictation_session_create(sizeof(s_last_text),
+  //                                                dictation_session_callback, NULL);
+  s_dictation_session = NULL;
 
   s_empty_msg_layer = text_layer_create(PBL_IF_ROUND_ELSE(
     GRect(0, bounds.size.h / 2 + 40, bounds.size.w, bounds.size.h),
