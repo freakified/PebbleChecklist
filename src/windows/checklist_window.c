@@ -205,15 +205,25 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer, MenuIndex *cell
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
   layer_set_hidden(text_layer_get_layer(s_empty_msg_layer), (checklist_get_num_items() != 0));
 
-  if(cell_index->row == 0) {
-    // draw the add action
-    draw_add_button(ctx, cell_layer);
-  } else if(cell_index->row == checklist_get_num_items() + 1) {
-    // draw the clear action
-    menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
+  if(s_dictation_session != NULL) {
+    if(cell_index->row == 0) {
+      // draw the add action
+      draw_add_button(ctx, cell_layer);
+    } else if(cell_index->row == checklist_get_num_items() + 1) {
+      // draw the clear action
+      menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
+    } else {
+      // draw the checkbox
+      draw_checkbox_cell(ctx, cell_layer, cell_index);
+    }
   } else {
-    // draw the checkbox
-    draw_checkbox_cell(ctx, cell_layer, cell_index);
+    if(cell_index->row == checklist_get_num_items()) {
+      // draw the clear action
+      menu_cell_basic_draw(ctx, cell_layer, "Clear completed", NULL, NULL);
+    } else {
+      // draw the checkbox
+      draw_checkbox_cell(ctx, cell_layer, cell_index);
+    }
   }
 }
 
