@@ -9,5 +9,5 @@ Thanks to the Pebble’s microphone and voice input, it’s now possible to keep
 Grocery shopping will never be the same.
 
 ## Want to try it?
-Grab it from the Pebble app store:
-https://apps.getpebble.com/applications/5620e876768e7ada4e00007a
+Grab it from the Rebble/Pebble app store:
+https://apps.rebble.io/en_US/application/5620e876768e7ada4e00007a?section=watchapps&dev_settings=true
