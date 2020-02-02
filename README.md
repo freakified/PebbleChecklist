@@ -28,6 +28,8 @@ Grocery shopping will never be the same.
 
 Note: If voice isn't working, make sure your Pebble Time app is the newest version (3.6.1 on Android,  3.3.1 on iOS) and that your Pebble is running firmware 3.6 or higher. You can check under "Support" in the Pebble Time app.
 
+In additon, ensure you are subscribed to a voice transcription service, for example http://rebble.io/
+
 
 ## Want to try it?
 Grab it from the Rebble/Pebble app store:
