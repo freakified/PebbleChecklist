@@ -74,6 +74,8 @@ void read_data_from_storage() {
   // load checklist information from storage
   s_checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
   s_checklist_num_checked = persist_read_int(PERSIST_KEY_CHECKLIST_NUM_CHECKED);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 s_checklist_length: %d", (int) s_checklist_length);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 s_checklist_num_checked: %d", (int) s_checklist_num_checked);
 
   // load the checklist by the block
   int num_blocks_required = s_checklist_length / s_items_per_block + 1;
@@ -82,6 +84,9 @@ void read_data_from_storage() {
     persist_read_data(PERSIST_KEY_CHECKLIST_BLOCK_FIRST + block,
                        &s_checklist_items[block * s_items_per_block],
                        s_block_size);
+  }
+  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 [%02d] %s", (int) s_checklist_items[i].is_checked, s_checklist_items[i].name);
   }
 }
 
