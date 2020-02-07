@@ -85,8 +85,9 @@ void read_data_from_storage() {
                        &s_checklist_items[block * s_items_per_block],
                        s_block_size);
   }
-  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 [%02d] %s", (int) s_checklist_items[i].is_checked, s_checklist_items[i].name);
+  // index 0 is the bottom of the list, higher numbers are top of list
+  for(int i = 0; i < MAX_CHECKLIST_ITEMS && strlen(s_checklist_items[i].name) > 0; i++) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 [%02d] %d %s", i, (int) s_checklist_items[i].is_checked, s_checklist_items[i].name);
   }
 }
 
