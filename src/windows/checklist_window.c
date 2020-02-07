@@ -292,7 +292,7 @@ static void select_long_callback(struct MenuLayer *menu_layer, MenuIndex *cell_i
     int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
 
     ChecklistItem *item = checklist_get_item_by_id(id);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 [%02d] %d %s", id, (int) item->is_checked, item->.name);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 [%02d] %d %s", id, (int) item->is_checked, item->name);
   }
 }
 
