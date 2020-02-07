@@ -280,6 +280,22 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
   }
 }
 
+static void select_long_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
+  if(cell_index->row == 0) {
+    // dump counts? export all non-checked?
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 select_long_callback() TOP checklist_get_num_items()=%d", checklist_get_num_items());
+  } else if(cell_index->row == checklist_get_num_items() + 1) {
+    // dump all check, export all checked?
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 select_long_callback() BOTTOM (clear)");
+  } else {
+    // Dump highlighted
+    int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
+
+    ChecklistItem *item = checklist_get_item_by_id(id);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 [%02d] %d %s", id, (int) item->is_checked, item->.name);
+  }
+}
+
 static void window_load(Window *window) {
   checklist_init();
 
@@ -311,6 +327,7 @@ static void window_load(Window *window) {
       .draw_row = (MenuLayerDrawRowCallback)draw_row_callback,
       .get_cell_height = (MenuLayerGetCellHeightCallback)get_cell_height_callback,
       .select_click = (MenuLayerSelectCallback)select_callback,
+      .select_long_click = (MenuLayerSelectCallback)select_long_callback,
   });
 
   window_set_background_color(window, BG_COLOR);
