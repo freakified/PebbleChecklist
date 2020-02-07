@@ -1,10 +1,10 @@
 # PebbleChecklist
 
 <img src="demo_animation.gif" width="144" height="168">
-A checklist—on your watch!
+A checklist-on your watch!
 
 
-Thanks to the Pebble's microphone and voice input, it's now possible to keep track of anything on your wrist! Designed to stay out of your way, use Checklist to keep track of anything you need without needing to hold your phone—things to-do, shopping, and more!
+Thanks to the Pebble's microphone and voice input, it's now possible to keep track of anything on your wrist! Designed to stay out of your way, use Checklist to keep track of anything you need without needing to hold your phone-things to-do, shopping, and more!
 
 
 Grocery shopping will never be the same.
@@ -18,10 +18,10 @@ Grocery shopping will never be the same.
 
 
 "...only one app, a simple list-making app called Checklist, which uses the watch's microphone to add tasks, really proved useful."
-—MIT Technology Review
+-MIT Technology Review
 
 "I loved the convenience of adding items to the Checklist app just by speaking"
-—Tom's Guide
+-Tom's Guide
 
 
 ******
@@ -32,5 +32,7 @@ In additon, ensure you are subscribed to a voice transcription service, for exam
 
 
 ## Want to try it?
+
 Grab it from the Rebble/Pebble app store:
+
 https://apps.rebble.io/en_US/application/5620e876768e7ada4e00007a?section=watchapps&dev_settings=true
