@@ -10,6 +10,8 @@ Pebble.addEventListener('ready', function(e) {
 Pebble.addEventListener('showConfiguration', function(e) {
   var configURL = BASE_CONFIG_URL + 'config.html';
 
+  configURL = configURL + '?itemsToAdd=test,notes,here';
+
   Pebble.openURL(configURL);
 });
 
