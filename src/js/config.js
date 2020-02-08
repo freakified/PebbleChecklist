@@ -2,6 +2,9 @@
 // var BASE_CONFIG_URL = 'http://192.168.0.103:4000/';
 var BASE_CONFIG_URL = 'http://clach04.github.io/pebble/checklist/';
 
+var itemsToAdd = [];
+
+
 Pebble.addEventListener('ready', function(e) {
   console.log('JS component loaded!');
 });
@@ -11,6 +14,7 @@ Pebble.addEventListener('showConfiguration', function(e) {
   var configURL = BASE_CONFIG_URL + 'config.html';
 
   configURL = configURL + '?itemsToAdd=test,notes,here';
+  //configURL = configURL + '?itemsToAdd=' + itemsToAdd.join(',');  // TODO escape url
 
   Pebble.openURL(configURL);
 });
@@ -37,6 +41,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
     // Send settings to Pebble watchapp
     Pebble.sendAppMessage(dict, function(){
       console.log('Sent config data to Pebble');
+      itemsToAdd = [];  // reset export list
     }, function() {
       console.log('Failed to send config data!');
     });
