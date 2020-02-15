@@ -10,22 +10,22 @@ Pebble.addEventListener('ready', function(e) {
 // open the config page when requested
 Pebble.addEventListener('showConfiguration', function(e) {
   var configURL = BASE_CONFIG_URL + 'config.html';
-  var itemsToAdd = localStorage.getItem('itemsToAdd') || '[]';
+  var items_exported = localStorage.getItem('items_exported') || '[]';
 
     try {
-      itemsToAdd = JSON.parse(itemsToAdd);
+      items_exported = JSON.parse(items_exported);
     }
     catch(error) {
-      console.error('itemsToAdd parse failed, defaulting to [] - ' + error);
+      console.error('items_exported parse failed, defaulting to [] - ' + error);
       // expected output: ReferenceError: nonExistentFunction is not defined
       // Note - error messages will vary depending on browser
-      itemsToAdd = [];
+      items_exported = [];
     }
 
-  console.log('config itemsToAdd = ', JSON.stringify(itemsToAdd));
-  //configURL = configURL + '?itemsToAdd=test,notes,here';
-  //configURL = configURL + '?itemsToAdd=' + encodeURIComponent(itemsToAdd.join(','));
-  configURL = configURL + '?itemsToAdd=' + itemsToAdd.join(',');
+  console.log('config items_exported = ', JSON.stringify(items_exported));
+  //configURL = configURL + '?items_exported=test,notes,here';
+  //configURL = configURL + '?items_exported=' + encodeURIComponent(items_exported.join(','));
+  configURL = configURL + '?items_exported=' + items_exported.join(',');
 
   Pebble.openURL(configURL);
 });
@@ -63,15 +63,15 @@ Pebble.addEventListener('webviewclosed', function(e) {
 
 Pebble.addEventListener("appmessage", function(e) {
    if (e.payload.KEY_ITEMS_TO_ADD) {
-      var itemsToAdd = [];  // only handle one message for now so no need to load
+      var items_exported = [];
 
       console.log('Message from Pebble: ' + JSON.stringify(e.payload));
       console.log('Message from Pebble value: ' + e.payload.KEY_ITEMS_TO_ADD);
-      console.log('pre add itemsToAdd = ', JSON.stringify(itemsToAdd));
-      itemsToAdd.push(e.payload.KEY_ITEMS_TO_ADD);
-      console.log('post add itemsToAdd = ', JSON.stringify(itemsToAdd));
-      //itemsToAdd.push('static');
-      //console.log('post add static itemsToAdd = ', JSON.stringify(itemsToAdd));
-      localStorage.setItem('itemsToAdd', JSON.stringify(itemsToAdd));  // global variables do not persist even when watch app is still running, so store now
+      console.log('pre add items_exported = ', JSON.stringify(items_exported));
+      items_exported.push(e.payload.KEY_ITEMS_TO_ADD);
+      console.log('post add items_exported = ', JSON.stringify(items_exported));
+      //items_exported.push('static');
+      //console.log('post add static items_exported = ', JSON.stringify(items_exported));
+      localStorage.setItem('items_exported', JSON.stringify(items_exported));  // global variables do not persist even when watch app is still running, so store now
    }
 });

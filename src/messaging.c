@@ -2,8 +2,7 @@
 #include "messaging.h"
 #include "checklist.h"
 
-static char s_items_to_add_buffer[512];
-static char all_text[(MAX_NAME_LENGTH * MAX_CHECKLIST_ITEMS) + 1]= "";  // space for commas and trailing blank - total should be smaller than app_message_outbox
+static char s_items_to_add_buffer[(MAX_NAME_LENGTH * MAX_CHECKLIST_ITEMS) + (MAX_CHECKLIST_ITEMS * 1) + 1]= "";  // space for comma and a space, and final trailing blank - total should be smaller than app_message_outbox
 
 void (*message_processed_callback)(void);
 
@@ -21,10 +20,10 @@ void messaging_init(void (*processed_callback)(void)) {
   //app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
   //APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 app_message_inbox_size_maximum()=%d", app_message_inbox_size_maximum ());  // 8200 bytes
   //APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 app_message_outbox_size_maximum()=%d", app_message_outbox_size_maximum());  // 8200 bytes
-  // just under 8Kb, with 52 * 50 bytes could send entire checklist as one string to phone....
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 PERSIST_DATA_MAX_LENGTH=%d", PERSIST_DATA_MAX_LENGTH);  // 256 bytes
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 PERSIST_STRING_MAX_LENGTH=%d", PERSIST_STRING_MAX_LENGTH);  // 256 bytes
+  // with 52 * 50 bytes could send entire checklist as one string to phone....
   app_message_open(sizeof(s_items_to_add_buffer) + /* safety net buffer */ + 100, (MAX_NAME_LENGTH * MAX_CHECKLIST_ITEMS) + /* safety net buffer */ + 100);
-  // FIXME s_items_to_add_buffer is too small, should really support full MAX_NAME_LENGTH * MAX_CHECKLIST_ITEMS + 1 (as minimum).
-  // increase and remove all_text[]
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Watch messaging is started!");
   app_message_register_inbox_received(inbox_received_callback);
@@ -39,8 +38,7 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "clach04 inbox value '%s'", s_items_to_add_buffer);
     if (strncmp(s_items_to_add_buffer, "export", sizeof(s_items_to_add_buffer) - 1) == 0)
     {
-        // 2Kb too much for the stack to allocate here but statically allocating at top of module is fine
-        //char all_text[(MAX_NAME_LENGTH /* * MAX_CHECKLIST_ITEMS*/) + 1]= "";  // space for commas and trailing blank - total should be smaller than app_message_outbox
+        s_items_to_add_buffer[0] = '\0';
         ChecklistItem *item=NULL;
 
         // magic export mode keyword found
@@ -55,8 +53,8 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
 
             // quick-n-dirty concat all items - ignore "checked" status
             // FIXME below will get slower and slower as more items are added
-            strcat(all_text, item->name);
-            strcat(all_text, ",");
+            strcat(s_items_to_add_buffer, item->name);
+            strcat(s_items_to_add_buffer, ",");
         }
 
         // Declare the dictionary's iterator
@@ -66,7 +64,7 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
         AppMessageResult result = app_message_outbox_begin(&out_iter);
         if(result == APP_MSG_OK) {
             // Construct the message
-            DictionaryResult dict_result = dict_write_cstring(out_iter, KEY_ITEMS_TO_ADD, all_text);
+            DictionaryResult dict_result = dict_write_cstring(out_iter, KEY_ITEMS_TO_ADD, s_items_to_add_buffer);
             
             if (dict_result == DICT_OK) {
                 // Send this message
