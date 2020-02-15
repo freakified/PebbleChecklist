@@ -1,6 +1,7 @@
 # PebbleChecklist
 
 <img src="demo_animation.gif" width="144" height="168">
+
 A checklist-on your watch!
 
 
@@ -36,3 +37,7 @@ In additon, ensure you are subscribed to a voice transcription service, for exam
 Grab it from the Rebble/Pebble app store:
 
 https://apps.rebble.io/en_US/application/5620e876768e7ada4e00007a?section=watchapps&dev_settings=true
+
+## Latest version with export
+
+Available from https://github.com/clach04/PebbleChecklist/releases
