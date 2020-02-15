@@ -41,3 +41,12 @@ https://apps.rebble.io/en_US/application/5620e876768e7ada4e00007a?section=watcha
 ## Latest version with export
 
 Available from https://github.com/clach04/PebbleChecklist/releases
+
+To export notes:
+
+  * open config
+  * add new note with title "config" (with no quotes), save
+  * open config again
+  * copy from the export field (which is the same format the add note field accepts
+
+NOTE check item status is NOT exported. Items end up in local storage.
