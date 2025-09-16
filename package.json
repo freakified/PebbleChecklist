@@ -1,5 +1,6 @@
 {
-  "version": "1.8.0",
+  "name": "checklist",
+  "version": "1.10.0",
   "author": "Freakified",
   "private": true,
   "dependencies": {},
@@ -7,6 +8,8 @@
     "pebble-app"
   ],
   "pebble": {
+    "enableMultiJS": true,
+    "displayName": "Checklist",
     "sdkVersion": "3",
     "resources": {
       "media": [
@@ -53,8 +56,7 @@
     "messageKeys": {
       "KEY_ITEMS_TO_ADD": 0
     },
-    "enableMultiJS": false,
-    "displayName": "Checklist",
+
     "watchapp": {
       "onlyShownOnCommunication": false,
       "hiddenApp": false,
@@ -69,6 +71,5 @@
     "capabilities": [
       "configurable"
     ]
-  },
-  "name": "Checklist"
+  }
 }

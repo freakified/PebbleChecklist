@@ -2,7 +2,7 @@
  * Example implementation of the dialog message UI pattern.
  */
 
-#include "windows/dialog_message_window.h"
+#include "dialog_message_window.h"
 
 #define MARGIN 10
 #define DELTA 13
