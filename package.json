@@ -56,17 +56,18 @@
     "messageKeys": {
       "KEY_ITEMS_TO_ADD": 0
     },
-
     "watchapp": {
       "onlyShownOnCommunication": false,
       "hiddenApp": false,
       "watchface": false
     },
     "targetPlatforms": [
+      "aplite",
       "basalt",
       "chalk",
       "diorite",
-      "emery"
+      "emery",
+      "flint"
     ],
     "capabilities": [
       "configurable"
