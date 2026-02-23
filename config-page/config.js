@@ -27,9 +27,10 @@ function renderItems() {
   container.innerHTML = "";
   items.forEach(function(item, index) {
     const checked = item.c ? "checked" : "";
+    const checkedClass = item.c ? " checked" : "";
     const html = '<div class="item">' +
       '<input type="checkbox" ' + checked + ' onchange="toggleItem(' + index + ')">' +
-      '<input type="text" class="item-text" value="' + escapeHtml(item.n) + '" oninput="updateItemText(' + index + ', this.value)">' +
+      '<input type="text" class="item-text' + checkedClass + '" value="' + escapeHtml(item.n) + '" oninput="updateItemText(' + index + ', this.value)">' +
       '<button class="icon-btn move-btn" onclick="moveToTop(' + index + ')">&#8593;</button>' +
       '<button class="icon-btn delete-btn" onclick="deleteItem(' + index + ')">&#10005;</button>' +
       '</div>';
@@ -39,6 +40,13 @@ function renderItems() {
 
 function toggleItem(index) {
   items[index].c = !items[index].c;
+  const container = document.getElementById("items_list");
+  const textInput = container.children[index].querySelector('.item-text');
+  if (items[index].c) {
+    textInput.classList.add('checked');
+  } else {
+    textInput.classList.remove('checked');
+  }
 }
 
 function updateItemText(index, text) {

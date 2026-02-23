@@ -38,6 +38,12 @@ body {
 .item-text:focus {
   outline: 2px solid #554E39;
 }
+.item-text.checked {
+  text-decoration: line-through;
+}
+.item-text.checked:focus {
+  text-decoration: none;
+}
 .icon-btn {
   width: 36px;
   height: 35px;
