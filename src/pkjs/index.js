@@ -48,23 +48,47 @@ Pebble.addEventListener('ready', function (e) {
 
 // open the config page when requested
 Pebble.addEventListener('showConfiguration', function (e) {
-  // Build readable template and minify at runtime
+  console.log('Requesting current state from watch');
+  
+  // Request current state from watch
+  Pebble.sendAppMessage({ 1: 1 }, function() {
+    console.log('State request sent successfully');
+  }, function() {
+    console.log('Failed to send state request, opening config without current data');
+    openConfigPage();
+  });
+});
+
+// Function to open config page with optional current state
+function openConfigPage(currentState) {
+  // Build readable template (skip minification for debugging)
   var readableHTML = getConfigHTML();
-  var minifiedHTML = minifyConfig(readableHTML);
+  
+  // Embed current state directly into HTML if provided
+  if (currentState) {
+    readableHTML = readableHTML.replace(
+      '// Initialize the page',
+      '// Initialize the page\nwindow.CURRENT_STATE = ' + JSON.stringify(currentState) + ';'
+    );
+  }
 
   console.log('Original size:', readableHTML.length);
-  console.log('Minified size:', minifiedHTML.length);
-  console.log('Opening URL-encoded config page');
-
-  // Try URL-encoded config first
-  var configURL = 'data:text/html;charset=utf-8,' + encodeURIComponent(minifiedHTML);
+  console.log('Opening config page');
+  
+  // Use non-minified version for debugging
+  var configURL = 'data:text/html;charset=utf-8,' + encodeURIComponent(readableHTML);
+  
   Pebble.openURL(configURL);
+}
 
-  // Fallback to hosted version if needed (uncomment to enable)
-  // setTimeout(function() {
-  //   console.log('Falling back to hosted config page');
-  //   Pebble.openURL(config.BASE_CONFIG_URL + 'config.html');
-  // }, 1000);
+// Handle current state from watch
+Pebble.addEventListener('appmessage', function(e) {
+  console.log('AppMessage received: ', JSON.stringify(e.payload));
+  
+  if (e.payload[2]) {
+    console.log('Current state received, opening config page');
+    openConfigPage(e.payload[2]);
+  }
 });
 
 // react to the config page when new data is sent
@@ -79,9 +103,14 @@ Pebble.addEventListener('webviewclosed', function (e) {
     // prepare a structure to hold everything we'll send to the watch
     var dict = {};
 
-    // color settings
+    // Handle legacy itemsToAdd for backward compatibility
     if (configData.itemsToAdd) {
-      dict.KEY_ITEMS_TO_ADD = configData.itemsToAdd;
+      dict[0] = configData.itemsToAdd; // KEY_ITEMS_TO_ADD
+    }
+
+    // Handle new itemUpdates format
+    if (configData.itemUpdates) {
+      dict[3] = JSON.stringify(configData.itemUpdates); // KEY_ITEM_UPDATES
     }
 
     console.log('Preparing message: ', JSON.stringify(dict));
