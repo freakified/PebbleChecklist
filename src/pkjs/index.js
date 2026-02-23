@@ -26,7 +26,7 @@ Pebble.addEventListener('appmessage', function (e) {
 });
 
 Pebble.addEventListener('webviewclosed', function (e) {
-  var data = e.response ? JSON.parse(e.response) : null;
+  var data = e.response ? JSON.parse(decodeURIComponent(e.response)) : null;
   if (!data) return console.log('No settings changed');
 
   var dict = {};

@@ -12,7 +12,13 @@ function getQueryParam(variable, defaultValue) {
 
 function parseCurrentState() {
   const state = window.CURRENT_STATE || getQueryParam("current_state", "[]");
-  try { items = JSON.parse(state); }
+  try {
+    if (typeof state === 'string') {
+      items = JSON.parse(state);
+    } else {
+      items = state;
+    }
+  }
   catch(e) { items = []; }
 }
 
