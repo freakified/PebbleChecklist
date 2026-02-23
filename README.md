@@ -4,7 +4,9 @@
 
 A checklist—on your watch!
 
-Thanks to the Pebble’s microphone and voice input, it’s now possible to keep track of anything on your wrist! Designed to stay out of your way, use Checklist to keep track of anything you need without needing to hold your phone.
+Keep track of anything on your wrist! Designed to stay out of your way, use Checklist to keep track of anything you need without needing to hold your phone.
+
+Using either the Pebble microphone or the fully-offline app settings page, add and manage your very own tiny checklist!
 
 Grocery shopping will never be the same.
 
