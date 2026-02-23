@@ -16,7 +16,7 @@ Pebble.addEventListener('showConfiguration', function () {
 function openConfigPage(currentState) {
   var url = configUri;
   if (currentState) {
-    url = url.replace('__CURRENT_STATE__', JSON.stringify(currentState));
+    url = url.replace('__CURRENT_STATE__', encodeURIComponent(JSON.stringify(currentState)));
   }
   Pebble.openURL(url);
 }
@@ -26,7 +26,7 @@ Pebble.addEventListener('appmessage', function (e) {
 });
 
 Pebble.addEventListener('webviewclosed', function (e) {
-  var data = e.response ? JSON.parse(decodeURIComponent(e.response)) : null;
+  var data = e.response ? JSON.parse(e.response) : null;
   if (!data) return console.log('No settings changed');
 
   var dict = {};

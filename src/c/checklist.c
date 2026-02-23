@@ -113,16 +113,7 @@ int checklist_get_num_items_checked() {
 }
 
 void checklist_add_items(char *name) {
-  // strncpy(line, name, MAX_NAME_LENGTH - 1);
-  char line[MAX_NAME_LENGTH], token[MAX_NAME_LENGTH];
-
-  while(name != NULL) {
-      // set "token" to the next word
-      name = strwrd(name, token, sizeof(token), ".,");
-
-      // add the word
-      add_item(token);
-  }
+  add_item(name);
 }
 
 void add_item(char *name) {
