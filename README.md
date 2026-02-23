@@ -10,6 +10,16 @@ Using either the Pebble microphone or the fully-offline app settings page, add a
 
 Grocery shopping will never be the same.
 
+## Special build instructions
+
+To build the local config page, run `node buildConfigPage.js` from the project root. This should be done before `pebble build`.
+
 ## Want to try it?
-Grab it from the Rebble/Pebble app store:
-https://apps.rebble.io/en_US/application/5620e876768e7ada4e00007a?section=watchapps&dev_settings=true
+
+Grab it from the Pebble app store:
+
+### Pebble Store
+<https://apps.repebble.com/5620e876768e7ada4e00007a>
+
+### Rebble Store
+<https://apps.rebble.io/en_US/application/5620e876768e7ada4e00007a>
