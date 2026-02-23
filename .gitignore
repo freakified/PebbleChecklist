@@ -2,6 +2,7 @@
 
 # Ignore build generated files
 build
+compile_commands.json
 
 # Ignore waf lock file
 .lock-waf*

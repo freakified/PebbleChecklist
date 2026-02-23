@@ -1,0 +1,103 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #FCEFB3;
+  color: #333;
+  font-size: 17px;
+}
+.container {
+  padding-bottom: 100px;
+}
+.items-section {
+  padding-top: 4px;
+}
+.section-header {
+  padding: 0 20px;
+  font-weight: bold;
+  font-size: 0.8em;
+  opacity: 0.5;
+}
+.item {
+  padding: 2px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.item input[type="checkbox"] { transform: scale(1.2); }
+.item-text {
+  flex: 1;
+  border: 1px solid #fdf5d1;
+  background: #fdf5d1;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 4px;
+}
+.items-list {
+  margin: 12px 0;
+}
+.item-text:focus {
+  outline: 2px solid #554E39;
+}
+.icon-btn {
+  width: 36px;
+  height: 35px;
+  border-radius: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: #999;
+}
+.icon-btn.move-btn { color: #554E39; }
+.icon-btn.delete-btn { color: #a61c1c; }
+.add-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 20px;
+}
+.new-item-input {
+  flex: 1;
+  padding: 12px 10px;
+  border: 1px solid #554E39;
+  border-radius: 5px;
+  font-size: 16px;
+  background-color: white;
+}
+.new-item-input:focus {
+  outline: 2px solid #554E39;
+  border-color: white;
+}
+.add-btn {
+  padding: 12px 16px;
+  background-color: #554E39;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.add-btn:disabled {
+  background-color: #DBD1A1;
+  cursor: default;
+}
+.submit-section {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #FCEFB3;
+}
+.submit-btn, .export-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.submit-btn { background-color: #554E39; color: white; }
+.export-btn { border: 1px solid #554E39 ; background: transparent; color: #554E39; }

@@ -73,8 +73,7 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
 }
 
 static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index) {
-  // draw a checklist item
-  int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
+  int id = cell_index->row - 1;
 
   ChecklistItem *item = checklist_get_item_by_id(id);
 
@@ -270,10 +269,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     menu_layer_reload_data(menu_layer);
 
   } else {
-    // if the item is a checklist item, toggle its checked state
-    // get the id number of the checklist item to delete
-    int id = checklist_get_num_items() - (cell_index->row - 1) - 1;
-
+    int id = cell_index->row - 1;
     checklist_item_toggle_checked(id);
 
     menu_layer_reload_data(menu_layer);

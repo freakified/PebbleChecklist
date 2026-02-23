@@ -158,16 +158,12 @@ void checklist_item_toggle_checked(int id) {
 }
 
 int checklist_delete_completed_items() {
-  // Clear the completed items
   int num_deleted = 0;
-
   int i = 0;
 
   while (i < s_checklist_length) {
-    if(s_checklist_items[i].is_checked) { // is the item checked?
-      // delete the item by shuffling the array backwards
+    if(s_checklist_items[i].is_checked) {
       memmove(&s_checklist_items[i], &s_checklist_items[i+1], sizeof(s_checklist_items[0])*(s_checklist_length - i));
-
       num_deleted++;
       s_checklist_length--;
     } else {
@@ -176,10 +172,12 @@ int checklist_delete_completed_items() {
   }
 
   s_checklist_num_checked -= num_deleted;
-
-  // save_data_to_storage();
-
   return num_deleted;
+}
+
+void checklist_clear() {
+  s_checklist_length = 0;
+  s_checklist_num_checked = 0;
 }
 
 ChecklistItem *checklist_get_item_by_id(int id) {

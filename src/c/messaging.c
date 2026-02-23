@@ -134,21 +134,9 @@ void send_current_state_to_phone() {
   }
 }
 
-// Simple JSON parser for item updates
 void process_item_updates(const char* json_string) {
-  // Clear current checklist by removing all items one by one
-  // This avoids the infinite loop issue with delete_completed_items
-  int num_items = checklist_get_num_items();
-  for(int i = 0; i < num_items; i++) {
-    // Remove first item repeatedly until all are gone
-    if(checklist_get_num_items() > 0) {
-      checklist_item_toggle_checked(0);  // Mark as completed
-    }
-  }
-  checklist_delete_completed_items();  // Now remove all completed items
+  checklist_clear();
   
-  // Simple parsing - this is a basic implementation
-  // In a production app, you'd want a proper JSON parser
   const char* ptr = json_string;
   
   while(*ptr) {

@@ -48,6 +48,11 @@ extern void checklist_item_toggle_checked(int id);
 extern int checklist_delete_completed_items();
 
 /*
+ * Clears all items from the checklist
+ */
+extern void checklist_clear();
+
+/*
  * Returns the checklist item referred to by the given id
  */
 extern ChecklistItem* checklist_get_item_by_id(int id);
