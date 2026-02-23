@@ -16,7 +16,7 @@ static AppTimer *s_timer;
 static char *s_message_text;
 static int s_current_frame_idx = 0;
 
-typedef enum {WARNING, SHRED} DialogType;
+typedef enum {SETTINGS, SHRED} DialogType;
 static DialogType s_dialog_type;
 
 static GBitmap *s_icon_bitmap;
@@ -87,18 +87,17 @@ static void window_load(Window *window) {
   } else {
     s_background_color = PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite);;
 
-    s_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WARNING);
+    s_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_SETTINGS);
     GRect bitmap_bounds = gbitmap_get_bounds(s_icon_bitmap);
 
     s_icon_layer = bitmap_layer_create(GRect(bounds.size.w / 2 - bitmap_bounds.size.w / 2,
-                                       MARGIN * 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
+                                       MARGIN, bitmap_bounds.size.w, bitmap_bounds.size.h));
 
     bitmap_layer_set_bitmap(s_icon_layer, s_icon_bitmap);
     bitmap_layer_set_compositing_mode(s_icon_layer, GCompOpSet);
     layer_add_child(window_layer, bitmap_layer_get_layer(s_icon_layer));
 
-    // TODO: make this less hardcoded
-    s_label_layer = text_layer_create(GRect(MARGIN, bounds.size.h / 2 - 10, bounds.size.w - (2 * MARGIN), bounds.size.h));
+    s_label_layer = text_layer_create(GRect(MARGIN, bounds.size.h / 2 + 10, bounds.size.w - (2 * MARGIN), bounds.size.h));
   }
 
   text_layer_set_text(s_label_layer, s_message_text);
@@ -157,8 +156,8 @@ void dialog_shred_window_push(char *message) {
   window_stack_push(s_main_window, true);
 }
 
-void dialog_warning_window_push(char *message) {
-  s_dialog_type = WARNING;
+void dialog_settings_window_push(char *message) {
+  s_dialog_type = SETTINGS;
   s_message_text = message;
 
 

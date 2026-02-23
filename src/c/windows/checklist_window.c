@@ -251,7 +251,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     if(s_dictation_session != NULL) {
       dictation_session_start(s_dictation_session);
     } else {
-      dialog_warning_window_push("Voice is offline, add items via the settings page.");
+      dialog_settings_window_push("Add items via the settings page on your phone.");
     }
   } else if(cell_index->row == checklist_get_num_items() + 1) {
     // the last row is always the "clear completed" button

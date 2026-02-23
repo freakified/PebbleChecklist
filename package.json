@@ -46,8 +46,8 @@
         },
         {
           "type": "bitmap",
-          "name": "WARNING",
-          "file": "images/warning.png"
+          "name": "SETTINGS",
+          "file": "images/settings_generic_large.png"
         }
       ]
     },
