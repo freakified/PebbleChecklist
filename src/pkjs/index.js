@@ -16,7 +16,8 @@ Pebble.addEventListener('showConfiguration', function () {
 function openConfigPage(currentState) {
   var url = configUri;
   if (currentState) {
-    url = url.replace('__CURRENT_STATE__', encodeURIComponent(JSON.stringify(currentState)));
+    var stateStr = encodeURIComponent(JSON.stringify(currentState)).replace(/'/g, '%27');
+    url = url.replace('__CURRENT_STATE__', stateStr);
   }
   Pebble.openURL(url);
 }
@@ -26,7 +27,25 @@ Pebble.addEventListener('appmessage', function (e) {
 });
 
 Pebble.addEventListener('webviewclosed', function (e) {
-  var data = e.response ? JSON.parse(decodeURIComponent(e.response)) : null;
+  var response = e.response;
+  var data = null;
+  if (response) {
+    // Unreasonable amount of checks to handle the myriad ways that URL encoded
+    // strings can get mangled
+    try {
+      data = JSON.parse(response);
+    } catch (e1) {
+      try {
+        data = JSON.parse(decodeURIComponent(response));
+      } catch (e2) {
+        try {
+          data = JSON.parse(decodeURIComponent(decodeURIComponent(response)));
+        } catch (e3) {
+          console.log('Failed to parse response data: ' + e3.message);
+        }
+      }
+    }
+  }
   if (!data) return console.log('No settings changed');
 
   var dict = {};

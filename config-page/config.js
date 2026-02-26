@@ -19,7 +19,7 @@ function parseCurrentState() {
       items = state;
     }
   }
-  catch(e) { items = []; }
+  catch (e) { items = []; }
 }
 
 function escapeHtml(text) {
@@ -31,7 +31,7 @@ function escapeHtml(text) {
 function renderItems() {
   const container = document.getElementById("items_list");
   container.innerHTML = "";
-  items.forEach(function(item, index) {
+  items.forEach(function (item, index) {
     const checked = item.c ? "checked" : "";
     const checkedClass = item.c ? " checked" : "";
     const html = '<div class="item">' +
@@ -82,7 +82,7 @@ function addItem() {
 }
 
 function exportCSV() {
-  const csv = items.map(function(item) {
+  const csv = items.map(function (item) {
     return '"' + item.n.replace(/"/g, '""') + '",' + (item.c ? "1" : "0");
   }).join("\n");
   const csvArea = document.getElementById("csv_output");
@@ -107,20 +107,21 @@ function cancelAndClose() {
 
 function submitData() {
   const config = { itemUpdates: [] };
-  items.forEach(function(item) {
+  items.forEach(function (item) {
     config.itemUpdates.push({ name: item.n, checked: item.c, action: "update" });
   });
-  document.location.href = getQueryParam("return_to", "pebblejs://close#") + encodeURIComponent(JSON.stringify(config));
+  const configStr = encodeURIComponent(JSON.stringify(config)).replace(/'/g, '%27');
+  document.location.href = getQueryParam("return_to", "pebblejs://close#") + configStr;
 }
 
-document.getElementById("new_item_input").addEventListener("input", function() {
+document.getElementById("new_item_input").addEventListener("input", function () {
   document.getElementById("add_btn").disabled = !this.value.trim();
 });
 
-document.getElementById("new_item_input").addEventListener("keypress", function(e) {
+document.getElementById("new_item_input").addEventListener("keypress", function (e) {
   if (e.key === "Enter" && this.value.trim()) addItem();
 });
 
-window.CURRENT_STATE=__CURRENT_STATE__;
+window.CURRENT_STATE = __CURRENT_STATE__;
 parseCurrentState();
 renderItems();
