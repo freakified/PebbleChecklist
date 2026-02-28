@@ -8,8 +8,7 @@ Pebble.addEventListener('showConfiguration', function () {
   console.log('Requesting current state from watch');
   Pebble.sendAppMessage({ 1: 1 }, function () {
     console.log('State request sent');
-  }, function (e) {
-    console.log('State request failed: ' + JSON.stringify(e));
+  }, function () {
     openConfigPage();
   });
 });
@@ -53,13 +52,9 @@ Pebble.addEventListener('webviewclosed', function (e) {
   if (data.itemsToAdd) dict[0] = data.itemsToAdd;
   if (data.itemUpdates) dict[3] = JSON.stringify(data.itemUpdates);
 
-  console.log('Sending message to Pebble: ' + JSON.stringify(dict));
-  console.log('Message size estimates: ' + JSON.stringify(dict).length + ' characters');
-
   Pebble.sendAppMessage(dict, function () {
     console.log('Sent config data to Pebble');
-  }, function (e) {
+  }, function () {
     console.log('Failed to send config data');
-    console.log('Error details: ' + JSON.stringify(e));
   });
 });

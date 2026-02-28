@@ -17,21 +17,20 @@ void messaging_init(void (*processed_callback)(void)) {
   app_message_register_outbox_failed(outbox_failed_callback);
   app_message_register_outbox_sent(outbox_sent_callback);
 
-  AppMessageResult res = app_message_open(INBOX_SIZE, OUTBOX_SIZE);
+  // Open AppMessage
+  // app_message_open(app_message_inbox_size_maximum(),
+  // app_message_outbox_size_maximum());
+  app_message_open(INBOX_SIZE, OUTBOX_SIZE);
 
-  // APP_LOG(
-  //     APP_LOG_LEVEL_DEBUG,
-  //     "Watch messaging started. Inbox size: %d, Outbox size: %d, Result: %d",
-  //     (int)inbox_size, (int)outbox_size, res);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Watch messaging is started!");
+  app_message_register_inbox_received(inbox_received_callback);
 }
 
 void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-  // APP_LOG(APP_LOG_LEVEL_DEBUG, "Inbox received message!");
   // Check for items to add (existing functionality)
   Tuple *items_to_add_tuple = dict_find(iterator, KEY_ITEMS_TO_ADD);
 
   if (items_to_add_tuple != NULL) {
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "Items to add found");
     strncpy(s_items_to_add_buffer, items_to_add_tuple->value->cstring,
             sizeof(s_items_to_add_buffer) - 1);
 
@@ -42,8 +41,8 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   Tuple *request_state_tuple = dict_find(iterator, KEY_REQUEST_STATE);
 
   if (request_state_tuple != NULL) {
-    // APP_LOG(APP_LOG_LEVEL_DEBUG,
-    // "State request received, sending current state");
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "State request received, sending current state");
     send_current_state_to_phone();
   }
 
@@ -51,24 +50,23 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   Tuple *item_updates_tuple = dict_find(iterator, KEY_ITEM_UPDATES);
 
   if (item_updates_tuple != NULL) {
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "Item updates received: %s",
-    // item_updates_tuple->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Item updates received: %s",
+            item_updates_tuple->value->cstring);
     process_item_updates(item_updates_tuple->value->cstring);
   }
 
   // notify the main screen, in case something changed
-  if (message_processed_callback) {
-    message_processed_callback();
-  }
+  message_processed_callback();
 }
 
 void inbox_dropped_callback(AppMessageResult reason, void *context) {
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped! Reason: %d", reason);
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
 }
 
 void outbox_failed_callback(DictionaryIterator *iterator,
                             AppMessageResult reason, void *context) {
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed! Reason: %d", reason);
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed! %d %d %d", reason,
+          APP_MSG_SEND_TIMEOUT, APP_MSG_SEND_REJECTED);
 }
 
 void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
@@ -135,9 +133,6 @@ void serialize_current_state() {
 
 void send_current_state_to_phone() {
   serialize_current_state();
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending current state to phone (%d bytes)",
-          (int)strlen(s_current_state_buffer));
 
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
