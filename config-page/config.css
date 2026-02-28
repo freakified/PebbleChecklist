@@ -91,6 +91,7 @@ body {
   border-radius: 5px;
   font-size: 16px;
   background-color: white;
+  min-width: 0;
 }
 
 .new-item-input:focus {
@@ -123,11 +124,27 @@ body {
   right: 0;
   background-color: #FCEFB3;
   z-index: 100;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+  flex: 1;
+  letter-spacing: 0.5px;
+  min-width: 0;
+}
+
+@media (max-width: 360px) {
+  .title {
+    visibility: hidden;
+    ;
+  }
 }
 
 .submit-btn,
 .export-btn {
-  flex: 1;
   padding: 12px;
   border: none;
   border-radius: 5px;
