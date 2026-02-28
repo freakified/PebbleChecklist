@@ -37,7 +37,22 @@
         {
           "type": "raw",
           "name": "DELETED_SEQUENCE",
-          "file": "images/deleted_sequence.pdc"
+          "file": "images/deleted_sequence.pdc",
+          "platforms": [
+            "basalt",
+            "chalk",
+            "diorite",
+            "emery",
+            "flint"
+          ]
+        },
+        {
+          "type": "raw",
+          "name": "DELETED_STATIC",
+          "file": "images/deleted_static.pdc",
+          "platforms": [
+            "aplite"
+          ]
         },
         {
           "type": "bitmap",
@@ -54,7 +69,10 @@
     "projectType": "native",
     "uuid": "b938082c-c230-4b8f-847d-15b27b1f907e",
     "messageKeys": {
-      "KEY_ITEMS_TO_ADD": 0
+      "KEY_ITEMS_TO_ADD": 0,
+      "KEY_REQUEST_STATE": 1,
+      "KEY_CURRENT_STATE": 2,
+      "KEY_ITEM_UPDATES": 3
     },
     "watchapp": {
       "onlyShownOnCommunication": false,
