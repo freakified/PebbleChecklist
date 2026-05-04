@@ -124,6 +124,11 @@ function deleteItem(index) {
   renderItems();
 }
 
+function clearCompleted() {
+  items = items.filter(function (item) { return !item.c; });
+  renderItems();
+}
+
 function addItem() {
   const input = document.getElementById("new_item_input");
   const text = input.value.trim();
