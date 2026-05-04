@@ -2,7 +2,7 @@
 #include "util.h"
 
 // constants
-#define CURRENT_CHECKLIST_DATA_VERSION 2
+#define CURRENT_CHECKLIST_DATA_VERSION 3
 
 // persistent storage keys
 #define PERSIST_KEY_CHECKLIST_DATA_VERSION 50
@@ -36,39 +36,44 @@ void checklist_deinit() {
   save_data_to_storage();
 }
 
-// legacy support: remove in future version
-// the checklist will occupy storage keys from 200 to 200 + MAX_CHECKLIST_ITEMS
-#define PERSIST_KEY_CHECKLIST_ITEM_FIRST  200
+#define LEGACY_NAME_LENGTH 50
 
-void migrate_legacy_data() {
-  // load legacy checklist information from storage
+typedef struct {
+  char name[LEGACY_NAME_LENGTH];
+  bool is_checked;
+  uint8_t sublist_id;
+} LegacyChecklistItem;
+
+static void migrate_v2_to_v3() {
   s_checklist_length = persist_read_int(PERSIST_KEY_CHECKLIST_LENGTH);
-  s_checklist_num_checked = 0;
+  s_checklist_num_checked = persist_read_int(PERSIST_KEY_CHECKLIST_NUM_CHECKED);
 
-  // load the legacy checklist data from storage
-  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
-    persist_read_data(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i, &s_checklist_items[i], sizeof(ChecklistItem));
+  int old_items_per_block = PERSIST_DATA_MAX_LENGTH / sizeof(LegacyChecklistItem);
+  int old_block_size = old_items_per_block * sizeof(LegacyChecklistItem);
+  int num_old_blocks = s_checklist_length / old_items_per_block + 1;
 
-    if(s_checklist_items[i].is_checked) {
-      s_checklist_num_checked++;
+  LegacyChecklistItem block_buf[PERSIST_DATA_MAX_LENGTH / sizeof(LegacyChecklistItem)];
+
+  for (int block = 0; block < num_old_blocks; block++) {
+    persist_read_data(PERSIST_KEY_CHECKLIST_BLOCK_FIRST + block, block_buf, old_block_size);
+    for (int j = 0; j < old_items_per_block; j++) {
+      int i = block * old_items_per_block + j;
+      if (i >= s_checklist_length) break;
+      strncpy(s_checklist_items[i].name, block_buf[j].name, LEGACY_NAME_LENGTH);
+      s_checklist_items[i].name[LEGACY_NAME_LENGTH] = '\0';
+      s_checklist_items[i].is_checked = block_buf[j].is_checked;
+      s_checklist_items[i].sublist_id = block_buf[j].sublist_id;
     }
   }
 
-  // now write the data in the new format
   save_data_to_storage();
-
-  // delete the old data
-  for(int i = 0; i < MAX_CHECKLIST_ITEMS; i++) {
-    persist_delete(PERSIST_KEY_CHECKLIST_ITEM_FIRST + i);
-  }
 }
 
 void read_data_from_storage() {
-  // check if migration is necessary
   int saved_version = persist_read_int(PERSIST_KEY_CHECKLIST_DATA_VERSION);
 
-  if(saved_version < CURRENT_CHECKLIST_DATA_VERSION) {
-    migrate_legacy_data();
+  if (saved_version == 2) {
+    migrate_v2_to_v3();
   }
 
   // load checklist information from storage
