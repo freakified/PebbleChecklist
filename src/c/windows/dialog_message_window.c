@@ -43,7 +43,11 @@ static void update_proc(Layer *layer, GContext *ctx) {
 
   // If another frame was found, draw it
   if (frame) {
-    gdraw_command_frame_draw(ctx, s_command_seq, frame, PBL_IF_ROUND_ELSE(GPoint(20, 10), GPoint(5, 10)));
+    GSize anim_size = gdraw_command_sequence_get_bounds_size(s_command_seq);
+    GRect layer_bounds = layer_get_bounds(layer);
+    int y_offset = (layer_bounds.size.h >= 200) ? 70 : 40;
+    GPoint origin = GPoint((layer_bounds.size.w - anim_size.w) / 2, y_offset);
+    gdraw_command_frame_draw(ctx, s_command_seq, frame, origin);
   }
 
   // Advance to the next frame, wrapping if neccessary
@@ -68,7 +72,7 @@ static void window_load(Window *window) {
 
   if(s_dialog_type == SHRED) {
     // Create the canvas Layer
-    s_canvas_layer = layer_create(GRect(30, 30, bounds.size.w, bounds.size.h));
+    s_canvas_layer = layer_create(bounds);
 
     s_command_seq = gdraw_command_sequence_create_with_resource(RESOURCE_ID_DELETED_SEQUENCE);
 
