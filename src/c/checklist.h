@@ -3,7 +3,11 @@
 #include <pebble.h>
 #include <string.h>
 
-#define MAX_NAME_LENGTH     50
+#ifdef PBL_PLATFORM_APLITE
+#define MAX_NAME_LENGTH 50
+#else
+#define MAX_NAME_LENGTH 90
+#endif
 #define MAX_CHECKLIST_ITEMS 52
 
 typedef struct ChecklistItem {
@@ -32,7 +36,8 @@ extern int checklist_get_num_items_checked();
 
 /*
  * Adds one or more items to the list.
- * Each item is identified by splitting the "name" string by a specific character
+ * Each item is identified by splitting the "name" string by a specific
+ * character
  */
 extern void checklist_add_items(char *name);
 
@@ -55,4 +60,4 @@ extern void checklist_clear();
 /*
  * Returns the checklist item referred to by the given id
  */
-extern ChecklistItem* checklist_get_item_by_id(int id);
+extern ChecklistItem *checklist_get_item_by_id(int id);
