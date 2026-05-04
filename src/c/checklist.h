@@ -3,11 +3,7 @@
 #include <pebble.h>
 #include <string.h>
 
-#ifdef PBL_PLATFORM_APLITE
-#define MAX_NAME_LENGTH 50
-#else
 #define MAX_NAME_LENGTH 90
-#endif
 #define MAX_CHECKLIST_ITEMS 52
 
 typedef struct ChecklistItem {

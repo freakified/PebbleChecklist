@@ -6,13 +6,8 @@
 #define KEY_CURRENT_STATE 2
 #define KEY_ITEM_UPDATES 3
 
-#ifdef PBL_PLATFORM_APLITE
-#define INBOX_SIZE 512
-#define OUTBOX_SIZE 512
-#else
 #define INBOX_SIZE 4096
 #define OUTBOX_SIZE 4096
-#endif
 
 void messaging_init(void (*message_processed_callback)(void));
 void inbox_received_callback(DictionaryIterator *iterator, void *context);

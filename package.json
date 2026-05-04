@@ -1,6 +1,6 @@
 {
   "name": "checklist",
-  "version": "2.2",
+  "version": "2.3",
   "author": "Freakified",
   "private": true,
   "dependencies": {},
@@ -62,7 +62,6 @@
       "watchface": false
     },
     "targetPlatforms": [
-      "aplite",
       "basalt",
       "chalk",
       "diorite",
