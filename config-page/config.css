@@ -239,7 +239,7 @@ body {
   background: white;
   border: 1px solid #554E39;
   border-radius: 5px;
-  min-width: 120px;
+  min-width: 180px;
   z-index: 200;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
