@@ -163,7 +163,7 @@ body {
 }
 
 .add-btn {
-  padding: 12px 16px;
+  padding: 12px 14px;
   background-color: #554E39;
   color: white;
   border: none;
@@ -206,26 +206,63 @@ body {
   }
 }
 
-.submit-btn,
-.export-btn,
-.import-btn {
+.submit-btn {
   padding: 12px;
   border: none;
   border-radius: 5px;
   font-size: 16px;
   cursor: pointer;
-}
-
-.submit-btn {
   background-color: #554E39;
   color: white;
 }
 
-.export-btn,
-.import-btn {
+.menu-container {
+  position: relative;
+}
+
+.menu-btn {
   border: 1px solid #554E39;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
   background: transparent;
   color: #554E39;
+  width: 43px;
+  height: 43px;
+}
+
+.menu-items {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: white;
+  border: 1px solid #554E39;
+  border-radius: 5px;
+  min-width: 120px;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.menu-items.open {
+  display: block;
+}
+
+.menu-items button {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+  color: #554E39;
+}
+
+.menu-items button:hover {
+  background: #FCEFB3;
 }
 
 .io-textarea {

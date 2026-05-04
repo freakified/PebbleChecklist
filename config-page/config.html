@@ -12,15 +12,20 @@
   <div class="container">
     <div class="submit-section">
       <h1 class="title">Checklist</h1>
-      <button class="export-btn" onclick="exportCSV()">Export</button>
-      <button class="import-btn" onclick="showImport()">Import</button>
+      <div class="menu-container">
+        <button class="menu-btn" onclick="toggleMenu(event)" aria-label="More options" aria-haspopup="menu" aria-expanded="false" id="menu_btn">•••</button>
+        <div class="menu-items" id="menu_items" role="menu">
+          <button role="menuitem" onclick="exportCSV(); closeMenu()">Export</button>
+          <button role="menuitem" onclick="showImport(); closeMenu()">Import</button>
+        </div>
+      </div>
       <button class="submit-btn" onclick="submitData()">Save to Watch</button>
     </div>
     <div class="items-section">
       <div class="items-list" id="items_list"></div>
       <div class="add-row">
         <input type="text" class="new-item-input" id="new_item_input" placeholder="Add new item...">
-        <button class="add-btn" id="add_btn" onclick="addItem()" disabled>&#xFF0B;</button>
+        <button class="add-btn" id="add_btn" onclick="addItem()" disabled aria-label="Add item">&#xFF0B;</button>
       </div>
     </div>
     <div id="io_section" style="display:none;">

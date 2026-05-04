@@ -166,6 +166,19 @@ function showIOSection(mode) {
   }
 }
 
+function toggleMenu(event) {
+  event.stopPropagation();
+  const isOpen = document.getElementById("menu_items").classList.toggle("open");
+  document.getElementById("menu_btn").setAttribute("aria-expanded", isOpen);
+}
+
+function closeMenu() {
+  document.getElementById("menu_items").classList.remove("open");
+  document.getElementById("menu_btn").setAttribute("aria-expanded", "false");
+}
+
+document.addEventListener("click", closeMenu);
+
 function exportCSV() {
   showIOSection("export");
 }
