@@ -23,14 +23,80 @@ body {
 }
 
 .item {
-  padding: 2px 20px;
+  padding: 0;
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  transition: transform 0.1s ease;
 }
 
-.item input[type="checkbox"] {
-  transform: scale(1.2);
+.item.dragging {
+  transition: none;
+  z-index: 10;
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background: #fdf5d1;
+  border-radius: 4px;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #bbb;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
+  padding-left: 20px;
+}
+
+.checkbox-label {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkbox-box {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #554E39;
+  border-radius: 4px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.checkbox-label input:checked + .checkbox-box {
+  background: #554E39;
+}
+
+.checkbox-label input:checked + .checkbox-box::after {
+  content: '';
+  display: block;
+  width: 11px;
+  height: 6px;
+  border-left: 2.5px solid white;
+  border-bottom: 2.5px solid white;
+  transform: rotate(-45deg);
+  margin-top: -3px;
 }
 
 .item-text {
@@ -59,8 +125,7 @@ body {
 }
 
 .icon-btn {
-  width: 36px;
-  height: 35px;
+  height: 36px;
   border-radius: 4px;
   background: none;
   border: none;
@@ -69,12 +134,10 @@ body {
   color: #999;
 }
 
-.icon-btn.move-btn {
-  color: #554E39;
-}
-
 .icon-btn.delete-btn {
   color: #a61c1c;
+  padding-right: 20px;
+  padding-left: 10px;
 }
 
 .add-row {

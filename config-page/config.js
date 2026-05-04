@@ -1,4 +1,5 @@
 let items = [];
+let dragState = null;
 
 function getQueryParam(variable, defaultValue) {
   const query = location.search.substring(1);
@@ -35,9 +36,9 @@ function renderItems() {
     const checked = item.c ? "checked" : "";
     const checkedClass = item.c ? " checked" : "";
     const html = '<div class="item">' +
-      '<input type="checkbox" ' + checked + ' onchange="toggleItem(' + index + ')">' +
+      '<span class="drag-handle" ontouchstart="onDragStart(event,' + index + ')" onmousedown="onDragStart(event,' + index + ')">&#x283F;</span>' +
+      '<label class="checkbox-label"><input type="checkbox" ' + checked + ' onchange="toggleItem(' + index + ')"><span class="checkbox-box"></span></label>' +
       '<input type="text" class="item-text' + checkedClass + '" value="' + escapeHtml(item.n) + '" oninput="updateItemText(' + index + ', this.value)">' +
-      '<button class="icon-btn move-btn" onclick="moveToTop(' + index + ')">&#8593;</button>' +
       '<button class="icon-btn delete-btn" onclick="deleteItem(' + index + ')">&#10005;</button>' +
       '</div>';
     container.insertAdjacentHTML("beforeend", html);
@@ -59,10 +60,63 @@ function updateItemText(index, text) {
   items[index].n = text;
 }
 
-function moveToTop(index) {
-  const item = items.splice(index, 1)[0];
-  items.unshift(item);
-  renderItems();
+function onDragStart(e, index) {
+  e.preventDefault();
+  const startY = e.touches ? e.touches[0].clientY : e.clientY;
+  const el = document.getElementById('items_list').children[index];
+  dragState = {
+    index: index,
+    targetIndex: index,
+    startY: startY,
+    itemHeight: el.getBoundingClientRect().height,
+    el: el,
+  };
+  el.classList.add('dragging');
+  document.addEventListener('touchmove', onDragMove, { passive: false });
+  document.addEventListener('touchend', onDragEnd);
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+  e.preventDefault();
+  const deltaY = (e.touches ? e.touches[0].clientY : e.clientY) - dragState.startY;
+  dragState.el.style.transform = 'translateY(' + deltaY + 'px)';
+  const newTarget = Math.max(0, Math.min(items.length - 1,
+    Math.round(dragState.index + deltaY / dragState.itemHeight)));
+  if (newTarget === dragState.targetIndex) return;
+  dragState.targetIndex = newTarget;
+  const { index, targetIndex, itemHeight, el } = dragState;
+  Array.from(document.getElementById('items_list').children).forEach(function(child, i) {
+    if (child === el) return;
+    if (index < targetIndex && i > index && i <= targetIndex) {
+      child.style.transform = 'translateY(-' + itemHeight + 'px)';
+    } else if (index > targetIndex && i >= targetIndex && i < index) {
+      child.style.transform = 'translateY(' + itemHeight + 'px)';
+    } else {
+      child.style.transform = '';
+    }
+  });
+}
+
+function onDragEnd() {
+  if (!dragState) return;
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+  Array.from(document.getElementById('items_list').children).forEach(function(child) {
+    child.style.transform = '';
+    child.classList.remove('dragging');
+  });
+  const { index, targetIndex } = dragState;
+  dragState = null;
+  if (targetIndex !== index) {
+    const item = items.splice(index, 1)[0];
+    items.splice(targetIndex, 0, item);
+    renderItems();
+  }
 }
 
 function deleteItem(index) {
