@@ -13,6 +13,7 @@
     <div class="submit-section">
       <h1 class="title">Checklist</h1>
       <button class="export-btn" onclick="exportCSV()">Export</button>
+      <button class="import-btn" onclick="showImport()">Import</button>
       <button class="submit-btn" onclick="submitData()">Save to Watch</button>
     </div>
     <div class="items-section">
@@ -22,9 +23,12 @@
         <button class="add-btn" id="add_btn" onclick="addItem()" disabled>&#xFF0B;</button>
       </div>
     </div>
-    <textarea id="csv_output"
-      style="display:none;width:100%;height:150px;margin-top:10px;font-family:monospace;font-size:12px;"
-      readonly></textarea>
+    <div id="io_section" style="display:none;">
+      <textarea id="csv_output" class="io-textarea"></textarea>
+      <div id="apply_row" style="display:none; margin-top: 8px; text-align: right;">
+        <button class="submit-btn" onclick="applyImport()">Apply Import</button>
+      </div>
+    </div>
   </div>
   <script src="config.js"></script>
 </body>

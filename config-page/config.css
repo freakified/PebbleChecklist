@@ -207,7 +207,8 @@ body {
 }
 
 .submit-btn,
-.export-btn {
+.export-btn,
+.import-btn {
   padding: 12px;
   border: none;
   border-radius: 5px;
@@ -220,8 +221,25 @@ body {
   color: white;
 }
 
-.export-btn {
+.export-btn,
+.import-btn {
   border: 1px solid #554E39;
   background: transparent;
   color: #554E39;
+}
+
+.io-textarea {
+  width: 100%;
+  height: 150px;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #554E39;
+  border-radius: 5px;
+  background: white;
+  resize: vertical;
+}
+
+#io_section {
+  padding: 10px 20px 20px;
 }

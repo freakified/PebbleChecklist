@@ -88,7 +88,7 @@ function onDragMove(e) {
   if (newTarget === dragState.targetIndex) return;
   dragState.targetIndex = newTarget;
   const { index, targetIndex, itemHeight, el } = dragState;
-  Array.from(document.getElementById('items_list').children).forEach(function(child, i) {
+  Array.from(document.getElementById('items_list').children).forEach(function (child, i) {
     if (child === el) return;
     if (index < targetIndex && i > index && i <= targetIndex) {
       child.style.transform = 'translateY(-' + itemHeight + 'px)';
@@ -106,7 +106,7 @@ function onDragEnd() {
   document.removeEventListener('touchend', onDragEnd);
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup', onDragEnd);
-  Array.from(document.getElementById('items_list').children).forEach(function(child) {
+  Array.from(document.getElementById('items_list').children).forEach(function (child) {
     child.style.transform = '';
     child.classList.remove('dragging');
   });
@@ -135,24 +135,67 @@ function addItem() {
   }
 }
 
-function exportCSV() {
-  const csv = items.map(function (item) {
-    return '"' + item.n.replace(/"/g, '""') + '",' + (item.c ? "1" : "0");
-  }).join("\n");
-  const csvArea = document.getElementById("csv_output");
-  if (csvArea) {
-    csvArea.value = csv;
-    csvArea.style.display = "block";
-    csvArea.select();
-  } else {
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "checklist.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+function showIOSection(mode) {
+  const section = document.getElementById("io_section");
+  const textarea = document.getElementById("csv_output");
+  const applyRow = document.getElementById("apply_row");
+
+  if (section.style.display !== "none" && section.dataset.mode === mode) {
+    section.style.display = "none";
+    return;
   }
+
+  if (mode === "export") {
+    textarea.value = items.map(function (item) {
+      return '"' + item.n.replace(/"/g, '""') + '",' + (item.c ? "1" : "0");
+    }).join("\n");
+    textarea.readOnly = true;
+    textarea.placeholder = "";
+    applyRow.style.display = "none";
+    section.dataset.mode = "export";
+    section.style.display = "block";
+    textarea.select();
+  } else {
+    textarea.value = "";
+    textarea.readOnly = false;
+    textarea.placeholder = "Paste plaintext list or an exported CSV";
+    applyRow.style.display = "block";
+    section.dataset.mode = "import";
+    section.style.display = "block";
+    textarea.focus();
+  }
+}
+
+function exportCSV() {
+  showIOSection("export");
+}
+
+function showImport() {
+  showIOSection("import");
+}
+
+function applyImport() {
+  const textarea = document.getElementById("csv_output");
+  const lines = textarea.value.split("\n")
+    .map(function (l) { return l.trim(); })
+    .filter(function (l) { return l; });
+
+  if (!lines.length) return;
+
+  const csvPattern = /^"((?:[^"]|"")*)",(0|1)$/;
+  if (csvPattern.test(lines[0])) {
+    lines.forEach(function (line) {
+      const match = line.match(csvPattern);
+      if (match) items.push({ n: match[1].replace(/""/g, '"'), c: match[2] === "1" });
+    });
+  } else {
+    lines.forEach(function (line) {
+      items.push({ n: line, c: false });
+    });
+  }
+
+  document.getElementById("io_section").style.display = "none";
+  renderItems();
 }
 
 function cancelAndClose() {
