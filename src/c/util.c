@@ -42,6 +42,19 @@ char* trim_whitespace(char *str) {
   return str;
 }
 
+char* trim_trailing_period(char *str) {
+  char *end;
+
+  end = str + strlen(str) - 1;
+
+  if (*end == '.') {
+    end--;
+    *(end+1) = 0;
+  }
+
+  return str;
+}
+
 /* find the next word starting at 's', delimited by characters
  * in the string 'delim', and store up to 'len' bytes into *buf
  * returns pointer to immediately after the word, or NULL if done.

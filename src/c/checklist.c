@@ -122,7 +122,9 @@ void checklist_add_items(char *name) {
 }
 
 void add_item(char *name) {
-  name = capitalize(trim_whitespace(name));
+  name = trim_whitespace(name);
+  name = trim_trailing_period(name);
+  name = capitalize(name);
 
   if(s_checklist_length < MAX_CHECKLIST_ITEMS && strlen(name) > 0) {
     strncpy(s_checklist_items[s_checklist_length].name, name, MAX_NAME_LENGTH - 1);
