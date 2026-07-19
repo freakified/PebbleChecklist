@@ -16,10 +16,8 @@ body {
 }
 
 .section-header {
-  padding: 0 20px;
-  font-weight: bold;
-  font-size: 0.8em;
-  opacity: 0.5;
+  padding: 5px 20px 10px;
+  font-size: 20px;
 }
 
 .item {
@@ -84,11 +82,11 @@ body {
   flex-shrink: 0;
 }
 
-.checkbox-label input:checked + .checkbox-box {
+input:checked + .checkbox-box {
   background: #554E39;
 }
 
-.checkbox-label input:checked + .checkbox-box::after {
+input:checked + .checkbox-box::after {
   content: '';
   display: block;
   width: 11px;
@@ -221,14 +219,17 @@ body {
 }
 
 .menu-btn {
-  border: 1px solid #554E39;
+  border: 1px solid #B0A67C;
   border-radius: 5px;
-  font-size: 14px;
   cursor: pointer;
   background: transparent;
   color: #554E39;
   width: 43px;
   height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .menu-items {
@@ -269,6 +270,55 @@ body {
   border: none;
   border-top: 1px solid #D9CFA8;
   margin: 4px 0;
+}
+
+  .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #FCEFB3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  width: calc(100% - 40px);
+  max-width: 340px;
+  padding: 16px 0;
+  border: 1px solid #554e39;
+}
+
+.modal .submit-btn {
+  display: block;
+  margin: 12px 20px 4px auto;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.setting-label {
+  flex: 1;
+}
+
+.setting-row input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.setting-row input:focus-visible + .checkbox-box {
+  outline: 2px solid #554E39;
 }
 
 .io-textarea {

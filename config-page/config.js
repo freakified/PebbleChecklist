@@ -23,6 +23,34 @@ function parseCurrentState() {
   catch (e) { items = []; }
 }
 
+// settings bitfield flags (shared with the watchapp)
+const SETTINGS_FLAG_SHOW_VOICE = 1;
+const SETTINGS_FLAG_MOVE_CHECKED = 2;
+const SETTINGS_FLAG_WRAP_AROUND = 4;
+const SETTINGS_FLAG_LARGER_FONT = 8;
+const SETTINGS_DEFAULT = SETTINGS_FLAG_SHOW_VOICE | SETTINGS_FLAG_WRAP_AROUND;
+
+function parseCurrentSettings() {
+  let bitfield = window.CURRENT_SETTINGS;
+  if (typeof bitfield !== 'number') {
+    bitfield = parseInt(getQueryParam("current_settings", ""), 10);
+    if (isNaN(bitfield)) bitfield = SETTINGS_DEFAULT;
+  }
+  document.getElementById("setting_show_voice").checked = !!(bitfield & SETTINGS_FLAG_SHOW_VOICE);
+  document.getElementById("setting_move_checked").checked = !!(bitfield & SETTINGS_FLAG_MOVE_CHECKED);
+  document.getElementById("setting_wrap_around").checked = !!(bitfield & SETTINGS_FLAG_WRAP_AROUND);
+  document.getElementById("setting_larger_font").checked = !!(bitfield & SETTINGS_FLAG_LARGER_FONT);
+}
+
+function getSettingsBitfield() {
+  let bitfield = 0;
+  if (document.getElementById("setting_show_voice").checked) bitfield |= SETTINGS_FLAG_SHOW_VOICE;
+  if (document.getElementById("setting_move_checked").checked) bitfield |= SETTINGS_FLAG_MOVE_CHECKED;
+  if (document.getElementById("setting_wrap_around").checked) bitfield |= SETTINGS_FLAG_WRAP_AROUND;
+  if (document.getElementById("setting_larger_font").checked) bitfield |= SETTINGS_FLAG_LARGER_FONT;
+  return bitfield;
+}
+
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
@@ -171,6 +199,16 @@ function showIOSection(mode) {
   }
 }
 
+function openSettings() {
+  document.getElementById("settings_modal").style.display = "flex";
+}
+
+function closeSettings(event) {
+  // ignore clicks that originate inside the modal (they bubble to the overlay)
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById("settings_modal").style.display = "none";
+}
+
 function toggleMenu(event) {
   event.stopPropagation();
   const isOpen = document.getElementById("menu_items").classList.toggle("open");
@@ -221,7 +259,7 @@ function cancelAndClose() {
 }
 
 function submitData() {
-  const config = { itemUpdates: [] };
+  const config = { itemUpdates: [], settings: getSettingsBitfield() };
   items.forEach(function (item) {
     config.itemUpdates.push({ name: item.n, checked: item.c, action: "update" });
   });
@@ -238,5 +276,7 @@ document.getElementById("new_item_input").addEventListener("keypress", function 
 });
 
 window.CURRENT_STATE = __CURRENT_STATE__;
+window.CURRENT_SETTINGS = __CURRENT_SETTINGS__;
 parseCurrentState();
+parseCurrentSettings();
 renderItems();

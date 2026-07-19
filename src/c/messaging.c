@@ -1,5 +1,6 @@
 #include "messaging.h"
 #include "checklist.h"
+#include "settings.h"
 #include <pebble.h>
 
 static char s_items_to_add_buffer[512];
@@ -53,6 +54,16 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Item updates received: %s",
             item_updates_tuple->value->cstring);
     process_item_updates(item_updates_tuple->value->cstring);
+  }
+
+  // Check for settings changes
+  Tuple *settings_tuple = dict_find(iterator, KEY_SETTINGS);
+
+  if (settings_tuple != NULL) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Settings received: %d",
+            (int)settings_tuple->value->int32);
+    settings_apply_bitfield(settings_tuple->value->int32);
+    settings_save();
   }
 
   // notify the main screen, in case something changed
@@ -139,6 +150,7 @@ void send_current_state_to_phone() {
 
   if (iter) {
     dict_write_cstring(iter, KEY_CURRENT_STATE, s_current_state_buffer);
+    dict_write_int32(iter, KEY_SETTINGS, settings_to_bitfield());
     app_message_outbox_send();
   }
 }
