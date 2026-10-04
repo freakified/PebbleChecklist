@@ -336,3 +336,22 @@ input:checked + .checkbox-box::after {
 #io_section {
   padding: 10px 20px 20px;
 }
+
+.list-notice {
+  margin: 8px 20px 0;
+  font-size: 14px;
+  color: #554E39;
+}
+
+.list-notice:empty {
+  display: none;
+}
+
+.list-notice.error {
+  color: #a61c1c;
+}
+
+.submit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

@@ -1,10 +1,11 @@
 #include "messaging.h"
 #include "checklist.h"
 #include "settings.h"
+#include "util.h"
 #include <pebble.h>
 
 static char s_items_to_add_buffer[512];
-static char s_current_state_buffer[1024];
+static char s_current_state_buffer[LIST_JSON_MAX_BYTES + 1];
 
 void (*message_processed_callback)(void);
 
@@ -85,61 +86,62 @@ void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 }
 
 // JSON serialization functions for two-way sync
+//
+// The list is exchanged as a compact JSON array in both directions:
+//   [{"n":"Milk","c":0},{"n":"Eggs","c":1}]
+// Only '"' and '\\' are escaped by the watch; the parser below also accepts the
+// escapes JSON.stringify may produce on the phone side.
+
+// Returns the number of bytes needed to write the name as a JSON string body
+static int escaped_length(const char *name) {
+  int len = 0;
+  for (int i = 0; name[i] != '\0'; i++) {
+    len += (name[i] == '"' || name[i] == '\\') ? 2 : 1;
+  }
+  return len;
+}
+
 void serialize_current_state() {
   int num_items = checklist_get_num_items();
   int pos = 0;
+  int max_pos = sizeof(s_current_state_buffer) - 2; // room for ']' and '\0'
 
-  // Start JSON array
   s_current_state_buffer[pos++] = '[';
 
   for (int i = 0; i < num_items; i++) {
     ChecklistItem *item = checklist_get_item_by_id(i);
 
-    // Add opening brace
-    s_current_state_buffer[pos++] = '{';
+    // {"n":"<name>","c":0} plus a separating comma; only whole items are
+    // written, so a list that doesn't fit is cut short rather than mangled
+    int needed = (i > 0 ? 1 : 0) + 14 + escaped_length(item->name);
+    if (pos + needed > max_pos) {
+      APP_LOG(APP_LOG_LEVEL_WARNING, "State too large; sent %d of %d items",
+              i, num_items);
+      break;
+    }
 
-    // Add name field
-    s_current_state_buffer[pos++] = '"';
-    s_current_state_buffer[pos++] = 'n';
-    s_current_state_buffer[pos++] = '"';
-    s_current_state_buffer[pos++] = ':';
-    s_current_state_buffer[pos++] = '"';
+    if (i > 0) {
+      s_current_state_buffer[pos++] = ',';
+    }
 
-    // Copy name (escape quotes if needed)
-    for (int j = 0; item->name[j] != '\0' &&
-                    pos < (int)sizeof(s_current_state_buffer) - 10;
-         j++) {
-      if (item->name[j] == '"') {
+    memcpy(&s_current_state_buffer[pos], "{\"n\":\"", 6);
+    pos += 6;
+
+    for (int j = 0; item->name[j] != '\0'; j++) {
+      if (item->name[j] == '"' || item->name[j] == '\\') {
         s_current_state_buffer[pos++] = '\\';
       }
       s_current_state_buffer[pos++] = item->name[j];
     }
 
-    s_current_state_buffer[pos++] = '"';
-    s_current_state_buffer[pos++] = ',';
-
-    // Add checked field
-    s_current_state_buffer[pos++] = '"';
-    s_current_state_buffer[pos++] = 'c';
-    s_current_state_buffer[pos++] = '"';
-    s_current_state_buffer[pos++] = ':';
+    memcpy(&s_current_state_buffer[pos], "\",\"c\":", 6);
+    pos += 6;
     s_current_state_buffer[pos++] = item->is_checked ? '1' : '0';
-
-    // Add closing brace
     s_current_state_buffer[pos++] = '}';
-
-    // Add comma if not last item
-    if (i < num_items - 1) {
-      s_current_state_buffer[pos++] = ',';
-    }
   }
 
-  // Close JSON array
   s_current_state_buffer[pos++] = ']';
   s_current_state_buffer[pos] = '\0';
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Serialized current state: %s",
-          s_current_state_buffer);
 }
 
 void send_current_state_to_phone() {
@@ -151,8 +153,39 @@ void send_current_state_to_phone() {
   if (iter) {
     dict_write_cstring(iter, KEY_CURRENT_STATE, s_current_state_buffer);
     dict_write_int32(iter, KEY_SETTINGS, settings_to_bitfield());
+
+    // lets the config page tell if the list had to be cut short
+    dict_write_int32(iter, KEY_TOTAL_ITEMS, checklist_get_num_items());
     app_message_outbox_send();
   }
+}
+
+// Reads a JSON string body starting just after its opening quote into buf
+// (truncating if needed), and returns a pointer just past the closing quote
+static const char *read_json_string(const char *ptr, char *buf, int buf_size) {
+  int len = 0;
+
+  while (*ptr && *ptr != '"') {
+    char c = *ptr++;
+
+    if (c == '\\' && *ptr) {
+      char escaped = *ptr++;
+      switch (escaped) {
+        case 'n': case 'r': case 't': c = ' '; break;
+        case 'u': c = '?'; ptr += (strlen(ptr) >= 4) ? 4 : strlen(ptr); break;
+        default: c = escaped; break; // '"', '\\', '/'
+      }
+    }
+
+    if (len < buf_size - 1) {
+      buf[len++] = c;
+    }
+  }
+
+  buf[len] = '\0';
+  utf8_trim_partial(buf);
+
+  return (*ptr == '"') ? ptr + 1 : ptr;
 }
 
 void process_item_updates(const char *json_string) {
@@ -160,55 +193,25 @@ void process_item_updates(const char *json_string) {
 
   const char *ptr = json_string;
 
-  while (*ptr) {
-    // Skip to name field
-    ptr = strstr(ptr, "\"name\":");
-    if (!ptr)
-      break;
-    ptr += 7; // Skip "name":
-
-    if (*ptr == '"')
-      ptr++; // Skip opening quote
-
-    // Extract name
+  while ((ptr = strstr(ptr, "\"n\":\"")) != NULL) {
     char name[MAX_NAME_LENGTH];
-    int name_pos = 0;
-    while (*ptr && *ptr != '"' && name_pos < MAX_NAME_LENGTH - 1) {
-      if (*ptr == '\\' && *(ptr + 1) == '"') {
-        name[name_pos++] = '"';
-        ptr += 2;
-      } else {
-        name[name_pos++] = *ptr++;
-      }
-    }
-    name[name_pos] = '\0';
+    ptr = read_json_string(ptr + 5, name, sizeof(name));
 
-    // Find checked field
-    ptr = strstr(ptr, "\"checked\":");
-    if (!ptr)
+    const char *checked = strstr(ptr, "\"c\":");
+    if (!checked) {
       break;
-    ptr += 10; // Skip "checked":
-
+    }
+    ptr = checked + 4;
     bool is_checked = (*ptr == '1' || *ptr == 't');
 
-    // Add item to checklist
-    if (strlen(name) > 0) {
-      checklist_add_items(name);
+    // only mark the item checked if it was actually added (the list may be
+    // full, or the name may have been blank)
+    int num_items_before = checklist_get_num_items();
+    checklist_add_items(name);
 
-      // Set checked state if needed
-      if (is_checked) {
-        int total_items = checklist_get_num_items();
-        if (total_items > 0) {
-          checklist_item_toggle_checked(total_items - 1);
-        }
-      }
+    if (is_checked && checklist_get_num_items() > num_items_before) {
+      checklist_item_toggle_checked(num_items_before);
     }
-
-    // Move to next item
-    ptr = strstr(ptr, "}");
-    if (!ptr)
-      break;
-    ptr++;
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Processed item updates");

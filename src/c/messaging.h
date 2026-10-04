@@ -6,9 +6,15 @@
 #define KEY_CURRENT_STATE 2
 #define KEY_ITEM_UPDATES 3
 #define KEY_SETTINGS 4
+#define KEY_TOTAL_ITEMS 5
 
 #define INBOX_SIZE 4096
 #define OUTBOX_SIZE 4096
+
+// The largest list JSON that fits in a message (either direction), leaving
+// room for the dictionary overhead and the other tuples. The config page uses
+// the same limit (LIST_JSON_MAX_BYTES), so keep the two in sync.
+#define LIST_JSON_MAX_BYTES 4000
 
 void messaging_init(void (*message_processed_callback)(void));
 void inbox_received_callback(DictionaryIterator *iterator, void *context);

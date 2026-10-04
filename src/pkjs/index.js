@@ -13,7 +13,7 @@ Pebble.addEventListener('showConfiguration', function () {
   });
 });
 
-function openConfigPage(currentState, currentSettings) {
+function openConfigPage(currentState, currentSettings, totalItems) {
   var url = configUri;
   if (currentState) {
     var stateStr = encodeURIComponent(JSON.stringify(currentState)).replace(/'/g, '%27');
@@ -23,11 +23,13 @@ function openConfigPage(currentState, currentSettings) {
   }
   // 5 = show voice button + wrap-around scrolling (the watchapp defaults)
   url = url.replace('__CURRENT_SETTINGS__', String(typeof currentSettings === 'number' ? currentSettings : 5));
+  // -1 = unknown; lets the page warn if the watch had to cut the list short
+  url = url.replace('__TOTAL_ITEMS__', String(typeof totalItems === 'number' ? totalItems : -1));
   Pebble.openURL(url);
 }
 
 Pebble.addEventListener('appmessage', function (e) {
-  if (e.payload[2]) openConfigPage(e.payload[2], e.payload[4]);
+  if (e.payload[2]) openConfigPage(e.payload[2], e.payload[4], e.payload[5]);
 });
 
 Pebble.addEventListener('webviewclosed', function (e) {
@@ -54,7 +56,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
 
   var dict = {};
   if (data.itemsToAdd) dict[0] = data.itemsToAdd;
-  if (data.itemUpdates) dict[3] = JSON.stringify(data.itemUpdates);
+  if (data.items) dict[3] = JSON.stringify(data.items);
   if (typeof data.settings === 'number') dict[4] = data.settings;
 
   Pebble.sendAppMessage(dict, function () {

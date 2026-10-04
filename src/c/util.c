@@ -60,3 +60,24 @@ char *strwrd(char *s, char *buf, size_t len, char *delim) {
     s += n;
     return (*s == 0) ? NULL : s;
 }
+
+void utf8_trim_partial(char *str) {
+  int len = strlen(str);
+  if (len == 0) {
+    return;
+  }
+
+  // find the start of the last character
+  int start = len - 1;
+  while (start > 0 && ((uint8_t)str[start] & 0xC0) == 0x80) {
+    start--;
+  }
+
+  // the length a sequence should have, given its lead byte
+  uint8_t lead = (uint8_t)str[start];
+  int expected = (lead < 0x80) ? 1 : (lead >= 0xF0) ? 4 : (lead >= 0xE0) ? 3 : 2;
+
+  if (len - start < expected) {
+    str[start] = '\0';
+  }
+}

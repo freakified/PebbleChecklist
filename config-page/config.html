@@ -32,14 +32,16 @@
           <button role="menuitem" onclick="showImport(); closeMenu()">Import</button>
         </div>
       </div>
-      <button class="submit-btn" onclick="submitData()">Save</button>
+      <button class="submit-btn" id="save_btn" onclick="submitData()">Save</button>
     </div>
     <div class="items-section">
+      <p class="list-notice error" id="truncated_warning" style="display:none;"></p>
       <div class="items-list" id="items_list"></div>
       <div class="add-row">
-        <input type="text" class="new-item-input" id="new_item_input" placeholder="Add new item...">
+        <input type="text" class="new-item-input" id="new_item_input" placeholder="Add new item..." maxlength="89">
         <button class="add-btn" id="add_btn" onclick="addItem()" disabled aria-label="Add item">&#xFF0B;</button>
       </div>
+      <p class="list-notice" id="list_status" role="status"></p>
     </div>
     <div id="io_section" style="display:none;">
       <textarea id="csv_output" class="io-textarea"></textarea>

@@ -26,10 +26,18 @@ App UUID: `b938082c-c230-4b8f-847d-15b27b1f907e` (needed for `send-app-message` 
 # add an item (key 0 = KEY_ITEMS_TO_ADD, one item per message)
 pebble send-app-message --emulator basalt --app-uuid b938082c-c230-4b8f-847d-15b27b1f907e --string 0=Milk
 # replace whole list (key 3 = KEY_ITEM_UPDATES, JSON; '3=[]' empties the list)
-pebble send-app-message --emulator basalt --app-uuid ... --string '3=[{"name":"Milk","checked":1}]'
+pebble send-app-message --emulator basalt --app-uuid ... --string '3=[{"n":"Milk","c":1}]'
 # settings bitfield (key 4 = KEY_SETTINGS): 1=show voice btn, 2=move checked to bottom, 4=wrap-around scroll, 8=larger font
 pebble send-app-message --emulator basalt --app-uuid ... --int 4=7
 ```
+
+## List limits
+
+The list goes both ways as the same compact JSON (`[{"n":"Milk","c":1}]`): the watch sends it as key 2 (`KEY_CURRENT_STATE`, along with key 5 `KEY_TOTAL_ITEMS`) and the phone sends it back as key 3.
+
+- At most 52 items (`MAX_CHECKLIST_ITEMS`), each name at most 89 UTF-8 bytes (`MAX_NAME_LENGTH - 1`).
+- The JSON can be at most 4000 bytes in either direction (`LIST_JSON_MAX_BYTES`, sized to fit the 4096-byte AppMessage buffers). The watch sends only whole items that fit, and key 5 lets the config page warn when items were left out.
+- The config page mirrors these limits as constants at the top of `config-page/config.js`, so change both sides together.
 
 ## Config page
 
