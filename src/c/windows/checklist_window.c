@@ -31,6 +31,15 @@ static char s_deleted_msg[30];
 
 static const char *const CLEAR_COMPLETED_TEXT = "Clear completed";
 
+// how long a just-toggled item stays in place before moving to its new
+// position when "move checked to bottom" is enabled
+#define PENDING_MOVE_DELAY_MS 400
+
+// the item that was just toggled but is still shown in its old position (or
+// -1 if none), and the timer that will move it
+static int s_pending_move_id = -1;
+static AppTimer *s_pending_move_timer;
+
 // Returns the number of rows shown above the checklist items (i.e. whether or
 // not the voice input button is shown)
 static uint16_t get_item_row_offset() {
@@ -44,24 +53,43 @@ static GFont get_item_font() {
                                    : FONT_KEY_GOTHIC_24_BOLD);
 }
 
+// Returns how far above true center to place single-line text so its glyphs
+// look vertically centered (the larger font has more padding above the glyphs)
+static int16_t get_item_font_center_offset() {
+  return settings_get()->use_larger_font ? 5 : 2;
+}
+
 // Maps a display position to a checklist item id. When "move checked to
 // bottom" is enabled, unchecked items are shown first (in list order),
 // followed by checked items (also in list order); the underlying list itself
 // is never reordered.
+// Returns whether an item is sorted with the checked items. A pending item
+// keeps its old position until its move happens.
+static bool is_item_sorted_as_checked(int id) {
+  bool is_checked = checklist_get_item_by_id(id)->is_checked;
+  return (id == s_pending_move_id) ? !is_checked : is_checked;
+}
+
 static int get_item_id_for_display_index(int display_index) {
   if (!settings_get()->move_checked_to_bottom) {
     return display_index;
   }
 
   int num_items = checklist_get_num_items();
-  int num_unchecked = num_items - checklist_get_num_items_checked();
+  int num_sorted_checked = 0;
+  for (int i = 0; i < num_items; i++) {
+    if (is_item_sorted_as_checked(i)) {
+      num_sorted_checked++;
+    }
+  }
+  int num_unchecked = num_items - num_sorted_checked;
 
   bool find_checked = (display_index >= num_unchecked);
   int target = find_checked ? display_index - num_unchecked : display_index;
 
   int count = 0;
   for (int i = 0; i < num_items; i++) {
-    if (checklist_get_item_by_id(i)->is_checked == find_checked) {
+    if (is_item_sorted_as_checked(i) == find_checked) {
       if (count == target) {
         return i;
       }
@@ -70,6 +98,39 @@ static int get_item_id_for_display_index(int display_index) {
   }
 
   return display_index;
+}
+
+// The inverse of get_item_id_for_display_index
+static int get_display_index_for_item_id(int id) {
+  int num_items = checklist_get_num_items();
+  for (int i = 0; i < num_items; i++) {
+    if (get_item_id_for_display_index(i) == id) {
+      return i;
+    }
+  }
+  return id;
+}
+
+static void cancel_pending_move() {
+  if (s_pending_move_timer != NULL) {
+    app_timer_cancel(s_pending_move_timer);
+    s_pending_move_timer = NULL;
+  }
+  s_pending_move_id = -1;
+}
+
+// Moves the pending item (if any) to its new position right away
+static void finish_pending_move() {
+  if (s_pending_move_id < 0) {
+    return;
+  }
+  cancel_pending_move();
+  menu_layer_reload_data(s_menu_layer);
+}
+
+static void pending_move_timer_callback(void *context) {
+  s_pending_move_timer = NULL;
+  finish_pending_move();
 }
 
 static void update_empty_msg_layer() {
@@ -125,7 +186,8 @@ static void draw_label_cell(GContext *ctx, Layer *cell_layer,
   GSize text_size = graphics_text_layout_get_content_size(
       text, font, text_bounds, GTextOverflowModeTrailingEllipsis,
       GTextAlignmentLeft);
-  text_bounds.origin.y = (bounds.size.h - text_size.h) / 2 - 2;
+  text_bounds.origin.y =
+      (bounds.size.h - text_size.h) / 2 - get_item_font_center_offset();
   text_bounds.size.h = text_size.h;
 
   graphics_draw_text(ctx, text, font, text_bounds,
@@ -165,6 +227,7 @@ static void dictation_session_callback(DictationSession *session,
   APP_LOG(APP_LOG_LEVEL_INFO, "Dictation status: %d", (int)status);
 
   if (status == DictationSessionStatusSuccess) {
+    finish_pending_move();
     checklist_add_items(transcription);
     menu_layer_reload_data(s_menu_layer);
     update_empty_msg_layer();
@@ -233,7 +296,8 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
       GSize text_size = graphics_text_layout_get_content_size(
           item->name, font, text_bounds, GTextOverflowModeTrailingEllipsis,
           alignment);
-      text_bounds.origin.y = (bounds.size.h - text_size.h) / 2 - 2;
+      text_bounds.origin.y =
+          (bounds.size.h - text_size.h) / 2 - get_item_font_center_offset();
       alignment = PBL_IF_ROUND_ELSE(GTextAlignmentCenter, alignment);
     }
 
@@ -385,6 +449,20 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer,
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
                             void *callback_context) {
   uint16_t offset = get_item_row_offset();
+  bool is_item_row = !(offset > 0 && cell_index->row == 0) &&
+                     cell_index->row != checklist_get_num_items() + offset;
+
+  if (is_item_row && s_pending_move_id >= 0 &&
+      get_item_id_for_display_index(cell_index->row - offset) ==
+          s_pending_move_id) {
+    // the item was toggled again before it moved: undo, leaving it in place
+    checklist_item_toggle_checked(s_pending_move_id);
+    cancel_pending_move();
+    menu_layer_reload_data(menu_layer);
+    return;
+  }
+
+  finish_pending_move();
 
   if (offset > 0 && cell_index->row == 0) {
     // the first row is the "add" button (when shown)
@@ -410,8 +488,18 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     update_empty_msg_layer();
 
   } else {
-    int id = get_item_id_for_display_index(cell_index->row - offset);
+    int display_index = cell_index->row - offset;
+    int id = get_item_id_for_display_index(display_index);
     checklist_item_toggle_checked(id);
+
+    // if the item will move, briefly leave it in place so the change is
+    // visible before it goes
+    if (settings_get()->move_checked_to_bottom &&
+        get_display_index_for_item_id(id) != display_index) {
+      s_pending_move_id = id;
+      s_pending_move_timer = app_timer_register(
+          PENDING_MOVE_DELAY_MS, pending_move_timer_callback, NULL);
+    }
 
     menu_layer_reload_data(menu_layer);
   }
@@ -422,9 +510,28 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   select_callback(s_menu_layer, &index, NULL);
 }
 
+// A short, subtle pulse to signal that the selection wrapped around
+static void vibe_wrap_pulse() {
+  static const uint32_t segments[] = {40};
+  vibes_enqueue_custom_pattern((VibePattern){
+      .durations = segments,
+      .num_segments = ARRAY_LENGTH(segments),
+  });
+}
+
 static void up_down_click_handler(ClickRecognizerRef recognizer,
                                   void *context) {
   bool up = (click_recognizer_get_button_id(recognizer) == BUTTON_ID_UP);
+
+  if (s_pending_move_id >= 0) {
+    finish_pending_move();
+
+    // the item below the moved one has now slid into the selected row, so
+    // it's already where "down" would have gone
+    if (!up) {
+      return;
+    }
+  }
 
   uint16_t num_rows = get_num_rows_callback(s_menu_layer, 0, NULL);
   MenuIndex index = menu_layer_get_selected_index(s_menu_layer);
@@ -434,11 +541,13 @@ static void up_down_click_handler(ClickRecognizerRef recognizer,
       // wrap from the top to the bottom
       menu_layer_set_selected_index(s_menu_layer, MenuIndex(0, num_rows - 1),
                                     MenuRowAlignBottom, true);
+      vibe_wrap_pulse();
       return;
     } else if (!up && index.row >= num_rows - 1) {
       // wrap from the bottom to the top
       menu_layer_set_selected_index(s_menu_layer, MenuIndex(0, 0),
                                     MenuRowAlignTop, true);
+      vibe_wrap_pulse();
       return;
     }
   }
@@ -524,6 +633,7 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+  cancel_pending_move();
   checklist_deinit();
 
   graphics_text_attributes_destroy(s_text_att);
@@ -554,6 +664,9 @@ void checklist_window_push() {
 }
 
 void checklist_window_refresh() {
+  // the list may have changed underneath the pending item
+  cancel_pending_move();
+
   if (s_menu_layer != NULL) {
     menu_layer_reload_data(s_menu_layer);
 
