@@ -31,14 +31,25 @@ static char s_deleted_msg[30];
 
 static const char *const CLEAR_COMPLETED_TEXT = "Clear completed";
 
-// how long a just-toggled item stays in place before moving to its new
-// position when "move checked to bottom" is enabled
-#define PENDING_MOVE_DELAY_MS 400
+// when "move checked to bottom" is enabled, how long a toggled item and the
+// items it passes take to slide into their new positions
+#define MOVE_ANIMATION_DURATION_MS 300
 
-// the item that was just toggled but is still shown in its old position (or
-// -1 if none), and the timer that will move it
-static int s_pending_move_id = -1;
-static AppTimer *s_pending_move_timer;
+// MenuLayer can't animate rows itself, so after a move each affected cell
+// draws whichever items currently overlap it, at positions interpolated from
+// the old layout to the new one. Cells clip their drawing and tile the
+// screen, so the result looks like the rows themselves are sliding.
+// The affected items are the display positions from s_move_anim_first (in
+// the new layout); the per-position arrays are indexed relative to it, and
+// the y positions are relative to the top of the first affected cell.
+static Animation *s_move_anim;
+static AnimationProgress s_move_anim_progress;
+static int s_move_anim_first;
+static int s_move_anim_count;
+static int s_move_anim_moved; // the moved item's position in the range
+static int16_t s_move_anim_heights[MAX_CHECKLIST_ITEMS];
+static int16_t s_move_anim_from_y[MAX_CHECKLIST_ITEMS];
+static int16_t s_move_anim_to_y[MAX_CHECKLIST_ITEMS];
 
 // Returns the number of rows shown above the checklist items (i.e. whether or
 // not the voice input button is shown)
@@ -63,13 +74,6 @@ static int16_t get_item_font_center_offset() {
 // bottom" is enabled, unchecked items are shown first (in list order),
 // followed by checked items (also in list order); the underlying list itself
 // is never reordered.
-// Returns whether an item is sorted with the checked items. A pending item
-// keeps its old position until its move happens.
-static bool is_item_sorted_as_checked(int id) {
-  bool is_checked = checklist_get_item_by_id(id)->is_checked;
-  return (id == s_pending_move_id) ? !is_checked : is_checked;
-}
-
 static int get_item_id_for_display_index(int display_index) {
   if (!settings_get()->move_checked_to_bottom) {
     return display_index;
@@ -78,7 +82,7 @@ static int get_item_id_for_display_index(int display_index) {
   int num_items = checklist_get_num_items();
   int num_sorted_checked = 0;
   for (int i = 0; i < num_items; i++) {
-    if (is_item_sorted_as_checked(i)) {
+    if (checklist_get_item_by_id(i)->is_checked) {
       num_sorted_checked++;
     }
   }
@@ -89,7 +93,7 @@ static int get_item_id_for_display_index(int display_index) {
 
   int count = 0;
   for (int i = 0; i < num_items; i++) {
-    if (is_item_sorted_as_checked(i) == find_checked) {
+    if (checklist_get_item_by_id(i)->is_checked == find_checked) {
       if (count == target) {
         return i;
       }
@@ -111,26 +115,82 @@ static int get_display_index_for_item_id(int id) {
   return id;
 }
 
-static void cancel_pending_move() {
-  if (s_pending_move_timer != NULL) {
-    app_timer_cancel(s_pending_move_timer);
-    s_pending_move_timer = NULL;
+static int16_t get_item_cell_height(int id);
+
+static void stop_move_animation() {
+  if (s_move_anim != NULL) {
+    // clear it first so the stopped handler knows it was stopped early
+    Animation *anim = s_move_anim;
+    s_move_anim = NULL;
+    animation_unschedule(anim);
+    layer_mark_dirty(menu_layer_get_layer(s_menu_layer));
   }
-  s_pending_move_id = -1;
 }
 
-// Moves the pending item (if any) to its new position right away
-static void finish_pending_move() {
-  if (s_pending_move_id < 0) {
-    return;
-  }
-  cancel_pending_move();
-  menu_layer_reload_data(s_menu_layer);
+static void move_anim_update(Animation *animation,
+                             const AnimationProgress progress) {
+  s_move_anim_progress = progress;
+  layer_mark_dirty(menu_layer_get_layer(s_menu_layer));
 }
 
-static void pending_move_timer_callback(void *context) {
-  s_pending_move_timer = NULL;
-  finish_pending_move();
+static void move_anim_stopped(Animation *animation, bool finished,
+                              void *context) {
+  if (animation == s_move_anim) {
+    s_move_anim = NULL;
+    layer_mark_dirty(menu_layer_get_layer(s_menu_layer));
+  }
+}
+
+static const AnimationImplementation s_move_anim_impl = {
+    .update = move_anim_update,
+};
+
+// Slides the items between two display positions from the layout where the
+// moved item was at old_index to the (current) one where it's at new_index
+static void start_move_animation(int old_index, int new_index) {
+  stop_move_animation();
+
+  bool down = new_index > old_index;
+  int count = down ? new_index - old_index + 1 : old_index - new_index + 1;
+  s_move_anim_first = down ? old_index : new_index;
+  s_move_anim_count = count;
+  s_move_anim_moved = down ? count - 1 : 0;
+
+  int16_t y = 0;
+  for (int i = 0; i < count; i++) {
+    s_move_anim_heights[i] = get_item_cell_height(
+        get_item_id_for_display_index(s_move_anim_first + i));
+    s_move_anim_to_y[i] = y;
+    y += s_move_anim_heights[i];
+  }
+
+  // in the old layout, the moved item was at the other end of the range and
+  // the rest were shifted one position towards it
+  y = 0;
+  if (down) {
+    s_move_anim_from_y[count - 1] = 0;
+    y = s_move_anim_heights[count - 1];
+    for (int i = 0; i < count - 1; i++) {
+      s_move_anim_from_y[i] = y;
+      y += s_move_anim_heights[i];
+    }
+  } else {
+    for (int i = 1; i < count; i++) {
+      s_move_anim_from_y[i] = y;
+      y += s_move_anim_heights[i];
+    }
+    s_move_anim_from_y[0] = y;
+  }
+
+  s_move_anim_progress = 0;
+  s_move_anim = animation_create();
+  animation_set_implementation(s_move_anim, &s_move_anim_impl);
+  animation_set_duration(s_move_anim, MOVE_ANIMATION_DURATION_MS);
+  animation_set_curve(s_move_anim, AnimationCurveEaseInOut);
+  animation_set_handlers(s_move_anim,
+                         (AnimationHandlers){.stopped = move_anim_stopped},
+                         NULL);
+  animation_schedule(s_move_anim);
 }
 
 static void update_empty_msg_layer() {
@@ -227,7 +287,7 @@ static void dictation_session_callback(DictationSession *session,
   APP_LOG(APP_LOG_LEVEL_INFO, "Dictation status: %d", (int)status);
 
   if (status == DictationSessionStatusSuccess) {
-    finish_pending_move();
+    stop_move_animation();
     checklist_add_items(transcription);
     menu_layer_reload_data(s_menu_layer);
     update_empty_msg_layer();
@@ -245,13 +305,12 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer,
   return num_rows;
 }
 
-static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
-                               MenuIndex *cell_index) {
-  int id = get_item_id_for_display_index(cell_index->row - get_item_row_offset());
-
+// Draws an item into the given rect of a cell (normally the whole cell, but
+// the move animation draws items partway into neighboring cells)
+static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer, int id,
+                               GRect bounds) {
   ChecklistItem *item = checklist_get_item_by_id(id);
-
-  GRect bounds = layer_get_bounds(cell_layer);
+  int16_t top = bounds.origin.y;
 
   GFont font = get_item_font();
   GRect text_bounds;
@@ -275,16 +334,21 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
   // command; the larger font needs a custom draw at any height
   if (bounds.size.h == CHECKLIST_CELL_MIN_HEIGHT &&
       !settings_get()->use_larger_font) {
+    // menu_cell_basic_draw draws into the layer's bounds, so point them at
+    // the item's rect for the duration of the call
+    GRect cell_bounds = layer_get_bounds(cell_layer);
+    layer_set_bounds(cell_layer, bounds);
     menu_cell_basic_draw(ctx, cell_layer, item->name, NULL, NULL);
+    layer_set_bounds(cell_layer, cell_bounds);
   } else {
 // on round watches, single line cells should always be center aligned with no
 // margin, (since anything else looks bad)
 #ifdef PBL_ROUND
     text_bounds =
-        GRect(CHECKLIST_CELL_MARGIN, 0,
+        GRect(CHECKLIST_CELL_MARGIN, top,
               bounds.size.w - CHECKLIST_WINDOW_BOX_SIZE * 4, bounds.size.h);
 #else
-    text_bounds = GRect(CHECKLIST_CELL_MARGIN, 0,
+    text_bounds = GRect(CHECKLIST_CELL_MARGIN, top,
                         bounds.size.w - CHECKLIST_CELL_MARGIN * 2 -
                             CHECKLIST_WINDOW_BOX_SIZE * 2,
                         bounds.size.h);
@@ -296,8 +360,8 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
       GSize text_size = graphics_text_layout_get_content_size(
           item->name, font, text_bounds, GTextOverflowModeTrailingEllipsis,
           alignment);
-      text_bounds.origin.y =
-          (bounds.size.h - text_size.h) / 2 - get_item_font_center_offset();
+      text_bounds.origin.y = top + (bounds.size.h - text_size.h) / 2 -
+                             get_item_font_center_offset();
       alignment = PBL_IF_ROUND_ELSE(GTextAlignmentCenter, alignment);
     }
 
@@ -328,7 +392,7 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
 
   if (show_checkbox) {
     GRect r = GRect(bounds.size.w - (2 * CHECKLIST_WINDOW_BOX_SIZE),
-                    (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
+                    top + (bounds.size.h / 2) - (CHECKLIST_WINDOW_BOX_SIZE / 2),
                     CHECKLIST_WINDOW_BOX_SIZE, CHECKLIST_WINDOW_BOX_SIZE);
 
     graphics_draw_rect(ctx, r);
@@ -349,8 +413,8 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
 
     GPoint strike_start_point, strike_end_point;
 
-    strike_start_point.y = bounds.size.h / 2;
-    strike_end_point.y = bounds.size.h / 2;
+    strike_start_point.y = top + bounds.size.h / 2;
+    strike_end_point.y = top + bounds.size.h / 2;
 
     // for single-height cells, draw a true strikethrough
     if (bounds.size.h == CHECKLIST_CELL_MIN_HEIGHT) {
@@ -384,6 +448,40 @@ static void draw_checkbox_cell(GContext *ctx, Layer *cell_layer,
   }
 }
 
+// Draws the parts of the animating items that currently overlap the cell at
+// the given position in the animated range
+static void draw_animating_cell(GContext *ctx, Layer *cell_layer, int pos) {
+  GRect bounds = layer_get_bounds(cell_layer);
+  int16_t cell_top = s_move_anim_to_y[pos];
+
+  // draw the moved item last, over the items it passes
+  for (int n = 0; n < s_move_anim_count; n++) {
+    int i = (n + s_move_anim_moved + 1) % s_move_anim_count;
+    int16_t from = s_move_anim_from_y[i];
+    int16_t to = s_move_anim_to_y[i];
+    int16_t y = from +
+                (int32_t)(to - from) * s_move_anim_progress /
+                    ANIMATION_NORMALIZED_MAX -
+                cell_top;
+    int16_t h = s_move_anim_heights[i];
+
+    if (y >= bounds.size.h || y + h <= 0) {
+      continue;
+    }
+
+    GRect rect = GRect(0, y, bounds.size.w, h);
+    if (i == s_move_anim_moved) {
+      graphics_context_set_fill_color(
+          ctx, menu_cell_layer_is_highlighted(cell_layer) ? GColorArmyGreen
+                                                          : BG_COLOR);
+      graphics_fill_rect(ctx, rect, 0, GCornerNone);
+    }
+    draw_checkbox_cell(ctx, cell_layer,
+                       get_item_id_for_display_index(s_move_anim_first + i),
+                       rect);
+  }
+}
+
 static void draw_row_callback(GContext *ctx, Layer *cell_layer,
                               MenuIndex *cell_index, void *context) {
   uint16_t offset = get_item_row_offset();
@@ -396,7 +494,16 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer,
     draw_label_cell(ctx, cell_layer, CLEAR_COMPLETED_TEXT);
   } else {
     // draw the checkbox
-    draw_checkbox_cell(ctx, cell_layer, cell_index);
+    int display_index = cell_index->row - offset;
+    int pos = display_index - s_move_anim_first;
+
+    if (s_move_anim == NULL || pos < 0 || pos >= s_move_anim_count) {
+      draw_checkbox_cell(ctx, cell_layer,
+                         get_item_id_for_display_index(display_index),
+                         layer_get_bounds(cell_layer));
+    } else {
+      draw_animating_cell(ctx, cell_layer, pos);
+    }
   }
 }
 
@@ -414,6 +521,17 @@ static int16_t get_text_cell_height(const char *text, int width) {
   } else {
     return size.h + CHECKLIST_CELL_MARGIN * 2;
   }
+}
+
+// Returns the height of an item's cell (which doesn't depend on its position)
+static int16_t get_item_cell_height(int id) {
+  int screen_width =
+      layer_get_bounds(window_get_root_layer(s_main_window)).size.w;
+  int width = PBL_IF_ROUND_ELSE(screen_width - CHECKLIST_WINDOW_BOX_SIZE * 4,
+                                screen_width - CHECKLIST_CELL_MARGIN * 2 -
+                                    CHECKLIST_WINDOW_BOX_SIZE * 2);
+
+  return get_text_cell_height(checklist_get_item_by_id(id)->name, width);
 }
 
 static int16_t get_cell_height_callback(struct MenuLayer *menu_layer,
@@ -434,35 +552,16 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer,
     return get_text_cell_height(CLEAR_COMPLETED_TEXT,
                                 screen_width - CHECKLIST_CELL_MARGIN * 2);
   } else {
-    int id = get_item_id_for_display_index(cell_index->row - offset);
-
-    ChecklistItem *item = checklist_get_item_by_id(id);
-
-    int width = PBL_IF_ROUND_ELSE(screen_width - CHECKLIST_WINDOW_BOX_SIZE * 4,
-                                  screen_width - CHECKLIST_CELL_MARGIN * 2 -
-                                      CHECKLIST_WINDOW_BOX_SIZE * 2);
-
-    return get_text_cell_height(item->name, width);
+    return get_item_cell_height(
+        get_item_id_for_display_index(cell_index->row - offset));
   }
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
                             void *callback_context) {
   uint16_t offset = get_item_row_offset();
-  bool is_item_row = !(offset > 0 && cell_index->row == 0) &&
-                     cell_index->row != checklist_get_num_items() + offset;
 
-  if (is_item_row && s_pending_move_id >= 0 &&
-      get_item_id_for_display_index(cell_index->row - offset) ==
-          s_pending_move_id) {
-    // the item was toggled again before it moved: undo, leaving it in place
-    checklist_item_toggle_checked(s_pending_move_id);
-    cancel_pending_move();
-    menu_layer_reload_data(menu_layer);
-    return;
-  }
-
-  finish_pending_move();
+  stop_move_animation();
 
   if (offset > 0 && cell_index->row == 0) {
     // the first row is the "add" button (when shown)
@@ -491,17 +590,12 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
     int display_index = cell_index->row - offset;
     int id = get_item_id_for_display_index(display_index);
     checklist_item_toggle_checked(id);
-
-    // if the item will move, briefly leave it in place so the change is
-    // visible before it goes
-    if (settings_get()->move_checked_to_bottom &&
-        get_display_index_for_item_id(id) != display_index) {
-      s_pending_move_id = id;
-      s_pending_move_timer = app_timer_register(
-          PENDING_MOVE_DELAY_MS, pending_move_timer_callback, NULL);
-    }
-
     menu_layer_reload_data(menu_layer);
+
+    int new_display_index = get_display_index_for_item_id(id);
+    if (new_display_index != display_index) {
+      start_move_animation(display_index, new_display_index);
+    }
   }
 }
 
@@ -523,15 +617,7 @@ static void up_down_click_handler(ClickRecognizerRef recognizer,
                                   void *context) {
   bool up = (click_recognizer_get_button_id(recognizer) == BUTTON_ID_UP);
 
-  if (s_pending_move_id >= 0) {
-    finish_pending_move();
-
-    // the item below the moved one has now slid into the selected row, so
-    // it's already where "down" would have gone
-    if (!up) {
-      return;
-    }
-  }
+  stop_move_animation();
 
   uint16_t num_rows = get_num_rows_callback(s_menu_layer, 0, NULL);
   MenuIndex index = menu_layer_get_selected_index(s_menu_layer);
@@ -633,7 +719,7 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
-  cancel_pending_move();
+  stop_move_animation();
   checklist_deinit();
 
   graphics_text_attributes_destroy(s_text_att);
@@ -664,8 +750,8 @@ void checklist_window_push() {
 }
 
 void checklist_window_refresh() {
-  // the list may have changed underneath the pending item
-  cancel_pending_move();
+  // the list may have changed underneath the animation
+  stop_move_animation();
 
   if (s_menu_layer != NULL) {
     menu_layer_reload_data(s_menu_layer);
