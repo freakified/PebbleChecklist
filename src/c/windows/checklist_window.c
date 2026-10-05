@@ -13,6 +13,7 @@ static Window *s_main_window;
 static MenuLayer *s_menu_layer;
 static StatusBarLayer *s_status_bar;
 static TextLayer *s_empty_msg_layer;
+static TextLayer *s_empty_hint_layer;
 
 static GBitmap *s_tick_black_bitmap;
 static GBitmap *s_tick_white_bitmap;
@@ -28,6 +29,15 @@ static char s_last_text[512];
 
 // buffer to hold alert message
 static char s_deleted_msg[30];
+
+// the hint shown under "No items". Round screens get hand-placed line breaks
+// so the lines narrow along with the bottom of the circle
+#define EMPTY_HINT_TEXT                                                        \
+  PBL_IF_ROUND_ELSE(                                                           \
+      "Add items via the app\nconfig page in the Pebble\napp on your phone",   \
+      "Add items via the app config page in the Pebble app on your phone")
+// blank space the Gothic fonts leave above their text
+#define EMPTY_TEXT_TOP_SPACE 4
 
 static const char *const CLEAR_COMPLETED_TEXT = "Clear completed";
 
@@ -198,27 +208,53 @@ static void update_empty_msg_layer() {
     return;
   }
 
-  Layer *layer = text_layer_get_layer(s_empty_msg_layer);
-  layer_set_hidden(layer, (checklist_get_num_items() != 0));
+  Layer *msg_layer = text_layer_get_layer(s_empty_msg_layer);
+  Layer *hint_layer = text_layer_get_layer(s_empty_hint_layer);
+  bool hidden = (checklist_get_num_items() != 0);
+  layer_set_hidden(msg_layer, hidden);
+  layer_set_hidden(hint_layer, hidden);
 
   GRect bounds = layer_get_bounds(window_get_root_layer(s_main_window));
+  int16_t h = bounds.size.h;
 
-  // when the voice button is shown, the message sits below it; when it is
-  // hidden, nothing else is on screen, so center the message vertically
-  int16_t y;
+  // the text never goes above the voice button (when shown) or the status bar
+  int16_t min_y;
   if (settings_get()->show_voice_button) {
-    y = PBL_IF_ROUND_ELSE(
-        bounds.size.h / 2 + 40,
-        (bounds.size.h - STATUS_BAR_LAYER_HEIGHT) / 2 + 25);
+    min_y = PBL_IF_ROUND_ELSE(h / 2 + CHECKLIST_CELL_MIN_HEIGHT / 2,
+                              STATUS_BAR_LAYER_HEIGHT + CHECKLIST_CELL_MIN_HEIGHT);
   } else {
-    y = PBL_IF_ROUND_ELSE(
-        bounds.size.h / 2 - 12,
-        STATUS_BAR_LAYER_HEIGHT + (bounds.size.h - STATUS_BAR_LAYER_HEIGHT) / 2 - 12);
+    min_y = PBL_IF_ROUND_ELSE(0, STATUS_BAR_LAYER_HEIGHT);
   }
 
-  GRect frame = layer_get_frame(layer);
+  // center the message and hint together in the space below the voice button
+  // when it's shown, or on the whole screen otherwise
+  int16_t area_top = settings_get()->show_voice_button ? min_y : 0;
+
+  int16_t msg_h = text_layer_get_content_size(s_empty_msg_layer).h;
+  int16_t hint_h = text_layer_get_content_size(s_empty_hint_layer).h;
+
+  // drop the hint where there isn't room for it (e.g. under the voice
+  // button on round watches)
+  if (min_y + msg_h + hint_h > h) {
+    layer_set_hidden(hint_layer, true);
+    hint_h = 0;
+  }
+
+  // the font's line height leaves blank space above the text, so shift the
+  // block up a little to center what's actually drawn
+  int16_t y = area_top + (h - area_top - msg_h - hint_h) / 2 -
+              EMPTY_TEXT_TOP_SPACE;
+  if (y < min_y) {
+    y = min_y;
+  }
+
+  GRect frame = layer_get_frame(msg_layer);
   frame.origin.y = y;
-  layer_set_frame(layer, frame);
+  layer_set_frame(msg_layer, frame);
+
+  frame = layer_get_frame(hint_layer);
+  frame.origin.y = y + msg_h;
+  layer_set_frame(hint_layer, frame);
 }
 
 // Draws a plain single-line label cell (e.g. "Clear completed") in the same
@@ -715,6 +751,17 @@ static void window_load(Window *window) {
                       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(s_empty_msg_layer));
 
+  // inset the hint so its lines don't get too long on wide screens
+  int16_t hint_margin = PBL_IF_ROUND_ELSE(0, bounds.size.w / 10);
+  s_empty_hint_layer = text_layer_create(GRect(
+      hint_margin, 0, bounds.size.w - hint_margin * 2, bounds.size.h));
+  text_layer_set_text(s_empty_hint_layer, EMPTY_HINT_TEXT);
+  text_layer_set_background_color(s_empty_hint_layer, GColorClear);
+  text_layer_set_text_alignment(s_empty_hint_layer, GTextAlignmentCenter);
+  text_layer_set_font(s_empty_hint_layer,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_18));
+  layer_add_child(window_layer, text_layer_get_layer(s_empty_hint_layer));
+
   update_empty_msg_layer();
 }
 
@@ -727,6 +774,7 @@ static void window_unload(Window *window) {
   menu_layer_destroy(s_menu_layer);
   status_bar_layer_destroy(s_status_bar);
   text_layer_destroy(s_empty_msg_layer);
+  text_layer_destroy(s_empty_hint_layer);
   dictation_session_destroy(s_dictation_session);
 
   gbitmap_destroy(s_tick_black_bitmap);
