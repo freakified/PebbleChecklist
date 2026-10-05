@@ -597,6 +597,12 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
                             void *callback_context) {
   uint16_t offset = get_item_row_offset();
 
+  // the select button is handled manually, so it can arrive with no rows at
+  // all (empty list and no voice button), where row 0 doesn't exist
+  if (cell_index->row >= get_num_rows_callback(menu_layer, 0, NULL)) {
+    return;
+  }
+
   stop_move_animation();
 
   if (offset > 0 && cell_index->row == 0) {
