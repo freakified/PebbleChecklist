@@ -14,6 +14,9 @@ typedef struct {
 
   // draw checklist items one Gothic font stage larger
   bool use_larger_font;
+
+  // start voice input right away when launched via quick launch
+  bool quick_launch_voice;
 } ChecklistSettings;
 
 extern void settings_init();

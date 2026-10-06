@@ -27,7 +27,7 @@ App UUID: `b938082c-c230-4b8f-847d-15b27b1f907e` (needed for `send-app-message` 
 pebble send-app-message --emulator basalt --app-uuid b938082c-c230-4b8f-847d-15b27b1f907e --string 0=Milk
 # replace whole list (key 3 = KEY_ITEM_UPDATES, JSON; '3=[]' empties the list)
 pebble send-app-message --emulator basalt --app-uuid ... --string '3=[{"n":"Milk","c":1}]'
-# settings bitfield (key 4 = KEY_SETTINGS): 1=show voice btn, 2=move checked to bottom, 4=wrap-around scroll, 8=larger font
+# settings bitfield (key 4 = KEY_SETTINGS): 1=show voice btn, 2=move checked to bottom, 4=wrap-around scroll, 8=larger font, 16=voice input on quick launch
 pebble send-app-message --emulator basalt --app-uuid ... --int 4=7
 ```
 

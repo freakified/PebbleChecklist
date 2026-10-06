@@ -1,5 +1,10 @@
 let items = [];
 let dragState = null;
+let pendingMoveTimer = null;
+
+// how long a just-toggled item stays in place before moving to its new
+// position when "move checked to bottom" is enabled (like the watch)
+const PENDING_MOVE_DELAY_MS = 400;
 
 // limits shared with the watchapp (MAX_CHECKLIST_ITEMS, MAX_NAME_LENGTH - 1
 // and LIST_JSON_MAX_BYTES in the C code)
@@ -34,7 +39,8 @@ const SETTINGS_FLAG_SHOW_VOICE = 1;
 const SETTINGS_FLAG_MOVE_CHECKED = 2;
 const SETTINGS_FLAG_WRAP_AROUND = 4;
 const SETTINGS_FLAG_LARGER_FONT = 8;
-const SETTINGS_DEFAULT = SETTINGS_FLAG_SHOW_VOICE | SETTINGS_FLAG_WRAP_AROUND;
+const SETTINGS_FLAG_QUICK_LAUNCH_VOICE = 16;
+const SETTINGS_DEFAULT = SETTINGS_FLAG_SHOW_VOICE | SETTINGS_FLAG_MOVE_CHECKED | SETTINGS_FLAG_WRAP_AROUND;
 
 function parseCurrentSettings() {
   let bitfield = window.CURRENT_SETTINGS;
@@ -46,6 +52,7 @@ function parseCurrentSettings() {
   document.getElementById("setting_move_checked").checked = !!(bitfield & SETTINGS_FLAG_MOVE_CHECKED);
   document.getElementById("setting_wrap_around").checked = !!(bitfield & SETTINGS_FLAG_WRAP_AROUND);
   document.getElementById("setting_larger_font").checked = !!(bitfield & SETTINGS_FLAG_LARGER_FONT);
+  document.getElementById("setting_quick_launch_voice").checked = !!(bitfield & SETTINGS_FLAG_QUICK_LAUNCH_VOICE);
 }
 
 function getSettingsBitfield() {
@@ -54,6 +61,7 @@ function getSettingsBitfield() {
   if (document.getElementById("setting_move_checked").checked) bitfield |= SETTINGS_FLAG_MOVE_CHECKED;
   if (document.getElementById("setting_wrap_around").checked) bitfield |= SETTINGS_FLAG_WRAP_AROUND;
   if (document.getElementById("setting_larger_font").checked) bitfield |= SETTINGS_FLAG_LARGER_FONT;
+  if (document.getElementById("setting_quick_launch_voice").checked) bitfield |= SETTINGS_FLAG_QUICK_LAUNCH_VOICE;
   return bitfield;
 }
 
@@ -121,13 +129,35 @@ function escapeHtml(text) {
   return div.innerHTML.replace(/"/g, '&quot;');
 }
 
+function isMoveCheckedEnabled() {
+  return document.getElementById("setting_move_checked").checked;
+}
+
+// Indexes into items in the order they're shown. Like the watch, checked items
+// are only shown at the bottom; the stored order stays the same.
+function getDisplayOrder() {
+  const order = items.map(function (item, index) { return index; });
+  if (!isMoveCheckedEnabled()) return order;
+  return order.filter(function (i) { return !items[i].c; })
+    .concat(order.filter(function (i) { return items[i].c; }));
+}
+
+function getItemElement(index) {
+  return document.querySelector('#items_list [data-index="' + index + '"]');
+}
+
 function renderItems() {
+  if (pendingMoveTimer) {
+    clearTimeout(pendingMoveTimer);
+    pendingMoveTimer = null;
+  }
   const container = document.getElementById("items_list");
   container.innerHTML = "";
-  items.forEach(function (item, index) {
+  getDisplayOrder().forEach(function (index) {
+    const item = items[index];
     const checked = item.c ? "checked" : "";
     const checkedClass = item.c ? " checked" : "";
-    const html = '<div class="item">' +
+    const html = '<div class="item" data-index="' + index + '">' +
       '<span class="drag-handle" ontouchstart="onDragStart(event,' + index + ')" onmousedown="onDragStart(event,' + index + ')">&#x283F;</span>' +
       '<label class="checkbox-label"><input type="checkbox" ' + checked + ' onchange="toggleItem(' + index + ')"><span class="checkbox-box"></span></label>' +
       '<input type="text" class="item-text' + checkedClass + '" value="' + escapeHtml(item.n) + '" maxlength="' + MAX_NAME_BYTES + '" oninput="updateItemText(' + index + ', this.value)">' +
@@ -138,14 +168,41 @@ function renderItems() {
   updateLimitStatus();
 }
 
+// Re-renders the list, sliding items from their old positions to their new ones
+function renderItemsAnimated() {
+  const oldTops = {};
+  Array.from(document.getElementById("items_list").children).forEach(function (el) {
+    oldTops[el.dataset.index] = el.getBoundingClientRect().top;
+  });
+  renderItems();
+  Array.from(document.getElementById("items_list").children).forEach(function (el) {
+    const oldTop = oldTops[el.dataset.index];
+    if (oldTop === undefined) return;
+    const deltaY = oldTop - el.getBoundingClientRect().top;
+    if (!deltaY) return;
+    el.style.transition = 'none';
+    el.style.transform = 'translateY(' + deltaY + 'px)';
+    el.getBoundingClientRect(); // apply the starting position before animating
+    el.style.transition = 'transform 0.25s ease';
+    el.style.transform = '';
+    el.addEventListener('transitionend', function () {
+      el.style.transition = '';
+    }, { once: true });
+  });
+}
+
 function toggleItem(index) {
   items[index].c = !items[index].c;
-  const container = document.getElementById("items_list");
-  const textInput = container.children[index].querySelector('.item-text');
-  if (items[index].c) {
-    textInput.classList.add('checked');
-  } else {
-    textInput.classList.remove('checked');
+  getItemElement(index).querySelector('.item-text').classList.toggle('checked', items[index].c);
+
+  if (isMoveCheckedEnabled()) {
+    // briefly leave the item in place so the change is visible before it moves
+    if (pendingMoveTimer) clearTimeout(pendingMoveTimer);
+    pendingMoveTimer = setTimeout(function () {
+      pendingMoveTimer = null;
+      // a drag in progress re-renders when it ends
+      if (!dragState) renderItemsAnimated();
+    }, PENDING_MOVE_DELAY_MS);
   }
 }
 
@@ -157,10 +214,12 @@ function updateItemText(index, text) {
 function onDragStart(e, index) {
   e.preventDefault();
   const startY = e.touches ? e.touches[0].clientY : e.clientY;
-  const el = document.getElementById('items_list').children[index];
+  // drag positions are in display order, not item indexes
+  const el = getItemElement(index);
+  const position = Array.prototype.indexOf.call(el.parentNode.children, el);
   dragState = {
-    index: index,
-    targetIndex: index,
+    index: position,
+    targetIndex: position,
     startY: startY,
     itemHeight: el.getBoundingClientRect().height,
     el: el,
@@ -207,8 +266,13 @@ function onDragEnd() {
   const { index, targetIndex } = dragState;
   dragState = null;
   if (targetIndex !== index) {
-    const item = items.splice(index, 1)[0];
-    items.splice(targetIndex, 0, item);
+    // store the list in its new display order
+    const order = getDisplayOrder();
+    order.splice(targetIndex, 0, order.splice(index, 1)[0]);
+    items = order.map(function (i) { return items[i]; });
+    renderItems();
+  } else if (pendingMoveTimer === null) {
+    // an item may have been toggled during the drag
     renderItems();
   }
 }
@@ -339,6 +403,8 @@ function submitData() {
   const configStr = encodeURIComponent(JSON.stringify(config)).replace(/'/g, '%27');
   document.location.href = getQueryParam("return_to", "pebblejs://close#") + configStr;
 }
+
+document.getElementById("setting_move_checked").addEventListener("change", renderItemsAnimated);
 
 document.getElementById("new_item_input").addEventListener("input", function () {
   document.getElementById("add_btn").disabled = !this.value.trim();

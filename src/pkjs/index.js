@@ -21,8 +21,8 @@ function openConfigPage(currentState, currentSettings, totalItems) {
   } else {
     url = url.replace('__CURRENT_STATE__', '%5B%5D');
   }
-  // 5 = show voice button + wrap-around scrolling (the watchapp defaults)
-  url = url.replace('__CURRENT_SETTINGS__', String(typeof currentSettings === 'number' ? currentSettings : 5));
+  // 7 = show voice button + move checked to bottom + wrap-around scrolling (the watchapp defaults)
+  url = url.replace('__CURRENT_SETTINGS__', String(typeof currentSettings === 'number' ? currentSettings : 7));
   // -1 = unknown; lets the page warn if the watch had to cut the list short
   url = url.replace('__TOTAL_ITEMS__', String(typeof totalItems === 'number' ? totalItems : -1));
   Pebble.openURL(url);

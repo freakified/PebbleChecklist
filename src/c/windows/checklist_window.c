@@ -24,6 +24,9 @@ static GTextAttributes *s_text_att;
 
 static DictationSession *s_dictation_session;
 
+// start voice input once the window first appears (quick launch setting)
+static bool s_start_dictation_on_appear;
+
 // Declare a buffer for the DictationSession
 static char s_last_text[512];
 
@@ -746,6 +749,10 @@ static void window_load(Window *window) {
   s_dictation_session = dictation_session_create(
       sizeof(s_last_text), dictation_session_callback, NULL);
 
+  s_start_dictation_on_appear = s_dictation_session != NULL &&
+                                settings_get()->quick_launch_voice &&
+                                launch_reason() == APP_LAUNCH_QUICK_LAUNCH;
+
   s_empty_msg_layer = text_layer_create(PBL_IF_ROUND_ELSE(
       GRect(0, bounds.size.h / 2 + 40, bounds.size.w, bounds.size.h),
       GRect(0, bounds.size.h / 2 + 25, bounds.size.w, bounds.size.h)));
@@ -769,6 +776,13 @@ static void window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_empty_hint_layer));
 
   update_empty_msg_layer();
+}
+
+static void window_appear(Window *window) {
+  if (s_start_dictation_on_appear) {
+    s_start_dictation_on_appear = false;
+    dictation_session_start(s_dictation_session);
+  }
 }
 
 static void window_unload(Window *window) {
@@ -797,6 +811,7 @@ void checklist_window_push() {
     s_main_window = window_create();
     window_set_window_handlers(s_main_window, (WindowHandlers){
                                                   .load = window_load,
+                                                  .appear = window_appear,
                                                   .unload = window_unload,
                                               });
   }
