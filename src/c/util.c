@@ -43,13 +43,10 @@ char* trim_whitespace(char *str) {
 }
 
 char* trim_trailing_period(char *str) {
-  char *end;
+  size_t len = strlen(str);
 
-  end = str + strlen(str) - 1;
-
-  if (*end == '.') {
-    end--;
-    *(end+1) = 0;
+  if (len > 0 && str[len - 1] == '.') {
+    str[len - 1] = '\0';
   }
 
   return str;
