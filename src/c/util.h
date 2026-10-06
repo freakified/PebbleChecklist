@@ -10,6 +10,7 @@ bool menu_layer_menu_index_selected(MenuLayer *menu_layer, MenuIndex *index);
 char is_space(char c);
 char *capitalize(char *str);
 char *trim_whitespace(char *str);
+char *trim_trailing_period(char *str);
 char *strwrd(char *s, char *buf, size_t len, char *delim);
 
 // Removes a partial UTF-8 character left at the end of a truncated string
