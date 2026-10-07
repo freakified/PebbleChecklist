@@ -33,6 +33,13 @@ static char s_last_text[512];
 // buffer to hold alert message
 static char s_deleted_msg[30];
 
+#ifdef PBL_TOUCH
+// the row that was highlighted when the current touch began. Touch navigation
+// moves the highlight to a tapped row before reporting the tap, so this is
+// the only way to tell a tap on the highlighted row from a tap elsewhere
+static int s_touchdown_row = -1;
+#endif
+
 // the hint shown under "No items". Round screens get hand-placed line breaks
 // so the lines narrow along with the bottom of the circle
 #define EMPTY_HINT_TEXT                                                        \
@@ -649,6 +656,31 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   select_callback(s_menu_layer, &index, NULL);
 }
 
+#ifdef PBL_TOUCH
+static void touch_handler(const TouchEvent *event, void *context) {
+  if (event->type == TouchEvent_Touchdown) {
+    s_touchdown_row = menu_layer_get_selected_index(s_menu_layer).row;
+  }
+}
+#endif
+
+// Only touch navigation reaches the MenuLayer's select callback (the select
+// button goes through select_click_handler), so this is where taps are
+// filtered: tapping a row that isn't highlighted just highlights it, and a
+// second tap is needed to act on it, so stray taps can't check items off
+static void menu_select_callback(struct MenuLayer *menu_layer,
+                                 MenuIndex *cell_index,
+                                 void *callback_context) {
+#ifdef PBL_TOUCH
+  int touchdown_row = s_touchdown_row;
+  s_touchdown_row = -1;
+  if (touchdown_row >= 0 && cell_index->row != touchdown_row) {
+    return;
+  }
+#endif
+  select_callback(menu_layer, cell_index, callback_context);
+}
+
 // A short, subtle pulse to signal that the selection wrapped around
 static void vibe_wrap_pulse() {
   static const uint32_t segments[] = {40};
@@ -731,8 +763,11 @@ static void window_load(Window *window) {
           .draw_row = (MenuLayerDrawRowCallback)draw_row_callback,
           .get_cell_height =
               (MenuLayerGetCellHeightCallback)get_cell_height_callback,
-          .select_click = (MenuLayerSelectCallback)select_callback,
+          .select_click = (MenuLayerSelectCallback)menu_select_callback,
       });
+#ifdef PBL_TOUCH
+  touch_service_subscribe(touch_handler, NULL);
+#endif
 
   window_set_background_color(window, BG_COLOR);
   menu_layer_set_normal_colors(s_menu_layer, BG_COLOR, GColorBlack);
@@ -786,6 +821,9 @@ static void window_appear(Window *window) {
 }
 
 static void window_unload(Window *window) {
+#ifdef PBL_TOUCH
+  touch_service_unsubscribe();
+#endif
   stop_move_animation();
   checklist_deinit();
 
